@@ -1,0 +1,1 @@
+#define NET_ID_LENGTH 64

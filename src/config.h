@@ -1,7 +1,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define NET_ID_LENGTH 64
+#include "common.h"
 
 typedef enum {
 	RAW
