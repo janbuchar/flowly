@@ -1,9 +1,14 @@
 CC=gcc
+PROG=flowly
+OBJDIR=build
+SRCDIR=src
 CFLAGS="-Wall"
 
-debug:clean
-	$(CC) $(CFLAGS) -g -o flowly main.c
-stable:clean
-	$(CC) $(CFLAGS) -o flowly main.c
+all: $(PROG)
+
+$(PROG): $(OBJDIR)/flowly.o
+
+$(OBJDIR)/flowly.o: $(SRCDIR)/flowly.c
+
 clean:
 	rm -vfr *~ flowly
