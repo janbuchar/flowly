@@ -19,7 +19,6 @@ main (int argc, char **argv)
 	flowly_config_t config;
 	config_load(&config);
 	
-	struct sockaddr_storage server;
 	struct addrinfo *r, *rorig, hint;
 	int error;
 	int sflow_socket;
