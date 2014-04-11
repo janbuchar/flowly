@@ -3,8 +3,33 @@
 
 #include "common.h"
 
+typedef u_int32_t stat_number_t;
+
 typedef struct {
-	u_int32_t packet_count;
-	u_int32_t byte_count;
+	stat_number_t packet_count;
+	stat_number_t byte_count;
 	time_t time;
 } flowstat_t;
+
+typedef struct {
+	size_t size;
+	size_t full;
+	size_t next;
+	flowstat_t items[STAT_COUNT];
+} stat_container_t;
+
+typedef stat_number_t (* reduce_fnc_t) (stat_number_t, stat_number_t);
+
+typedef stat_number_t (* reduce_keyfnc_t) (const void *);
+
+void 
+stat_container_init (stat_container_t * q);
+
+flowstat_t *
+stat_container_next (stat_container_t * q);
+
+stat_number_t
+stat_container_reduce (stat_container_t * q, reduce_keyfnc_t key, reduce_fnc_t fnc);
+
+void
+stat_container_free (stat_container_t * q);

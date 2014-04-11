@@ -8,11 +8,13 @@
 #include <netdb.h>
 #include <err.h>
 
+#include "common.h"
 #include "config.h"
 #include "sflow.h"
+#include "flowstat.h"
 
 int 
-main (int argc, char ** argv) 
+main (int argc, char **argv) 
 {
 	flowly_config_t config;
 	config_load(&config);
@@ -51,13 +53,18 @@ main (int argc, char ** argv)
 		err(1, "setsockopt");
 	}
 	
+	stat_container_t *stats = malloc(config.network_count * sizeof(stat_container_t));
 	
 	int n;
-	sflow_data_header_t header;
-	int header_size = sizeof(sflow_data_header_t);
+	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
 	
-	while ((n = recvfrom(sflow_socket, &header, sizeof (header), 0, NULL, 0)) > 0) {
-		// TODO
+	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
+		if (n == MAX_SFLOW_PACKET_SIZE) {
+			continue; // Now that's a big packet... How about a message?
+		}
+		
+		size_t network = find_network(packet, &config); // TODO implement
+		store_stats(stats, network, packet);
 	}
 	
 	return 0;

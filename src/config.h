@@ -14,14 +14,21 @@ typedef struct {
 } flowly_client_t;
 
 typedef struct {
+	size_t id;
+	char name[NET_NAME_LENGTH];
+} flowly_network_t;
+
+typedef struct {
 	struct sockaddr_storage addr;
 	struct sockaddr_storage mask;
-	char net_id[NET_ID_LENGTH];
+	size_t net_id;
 } flowly_route_t;
 
 typedef struct {
 	flowly_client_t * clients;
 	flowly_route_t * routes;
+	flowly_network_t * networks;
+	size_t network_count;
 	size_t send_interval;
 	u_int16_t listen_port;
 } flowly_config_t;
