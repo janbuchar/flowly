@@ -17,7 +17,8 @@ stat_container_next (stat_container_t * q)
 	}
 	
 	if (q->next == STAT_COUNT) {
-		return &(q->items[q->next = 0]);
+		q->next = 1;
+		return &(q->items[0]);
 	}
 	
 	return &(q->items[q->next++]);
