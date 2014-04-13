@@ -204,10 +204,14 @@ config_load (flowly_config_t *config, char *path)
 			route_item->addr = strtok(line, route_delim);
 			route_item->mask = strtok(NULL, route_delim);
 			route_item->network = strtok(NULL, route_delim);
-			if (strlen(route_item->network) >= NET_NAME_LENGTH) {
+			if (route_item->addr == NULL) {
+				continue; // empty line
+			}
+			if (route_item->network != NULL && strlen(route_item->network) < NET_NAME_LENGTH) {
+				list_add(&route_list_head, &route_list_tail, route_item);
+			} else {
 				return -1; // network name too long
 			}
-			list_add(&route_list_head, &route_list_tail, route_item);
 			break;
 		case CLIENTS:
 			client_item = malloc(sizeof (list_item_client_t));
