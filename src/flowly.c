@@ -17,7 +17,7 @@ int
 main (int argc, char **argv) 
 {
 	flowly_config_t config;
-	config_load(&config);
+	config_load(&config, NULL);
 	
 	struct addrinfo *r, *rorig, hint;
 	int error;
