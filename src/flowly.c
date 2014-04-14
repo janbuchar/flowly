@@ -26,7 +26,7 @@ create_socket (flowly_config_t *config)
 	hint.ai_socktype = SOCK_DGRAM;
 	hint.ai_flags = AI_PASSIVE;
 	
-	if ((error = getaddrinfo(NULL, config.listen_port, &hint, &r)) != 0) {
+	if ((error = getaddrinfo(NULL, config->listen_port, &hint, &r)) != 0) {
 		errx(1, "%s", gai_strerror(error));
 	}
 	
