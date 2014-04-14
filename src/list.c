@@ -3,26 +3,33 @@
 
 #include "list.h"
 
-void
-list_add (list_t **head, list_t **tail, void *item)
+void 
+list_init (list_t* list)
 {
-	list_t *container = malloc(sizeof (list_t));
+	list->head = NULL;
+	list->tail = NULL;
+}
+
+void
+list_add (list_t *list, void *item)
+{
+	list_node_t *container = malloc(sizeof (list_node_t));
 	container->val = item;
 	container->next = NULL;
 	
-	if (*head == NULL) {
-		*head = container;
+	if (list->head == NULL) {
+		list->head = container;
 	}
-	if (*tail != NULL) {
-		(*tail)->next = container;
+	if (list->tail != NULL) {
+		list->tail->next = container;
 	}
-	(*tail) = container;
+	list->tail = container;
 }
 
 size_t
-list_count (list_t *head)
+list_count (list_t *list)
 {
-	list_t *cursor = head;
+	list_node_t *cursor = list->head;
 	size_t result = 0;
 	
 	while (cursor != NULL) {
