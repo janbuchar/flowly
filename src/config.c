@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
 	char *addr;
 	char *mask;
-	char *network;
+	char network[NET_NAME_LENGTH];
 	size_t network_id;
 } list_item_route_t;
 
@@ -203,11 +203,13 @@ config_load (flowly_config_t *config, char *path)
 			route_item = malloc(sizeof (list_item_route_t));
 			route_item->addr = strtok(line, route_delim);
 			route_item->mask = strtok(NULL, route_delim);
-			route_item->network = strtok(NULL, route_delim);
+			token = strtok(NULL, route_delim);
+			
 			if (route_item->addr == NULL) {
 				continue; // empty line
 			}
-			if (route_item->network != NULL && strlen(route_item->network) < NET_NAME_LENGTH) {
+			if (token != NULL && strlen(token) < NET_NAME_LENGTH) {
+				strcpy(route_item->network, token);
 				list_add(&route_list_head, &route_list_tail, route_item);
 			} else {
 				return -1; // network name too long
@@ -264,10 +266,9 @@ config_load (flowly_config_t *config, char *path)
 			strcpy(item->name, network);
 			item->id = j;
 			list_add(&network_list_head, &network_list_tail, item);
-			config->network_count++;
 		}
 		
-		((list_item_route_t *) (cursor->val))->network_id = j;
+		((list_item_route_t *) cursor->val)->network_id = j;
 		load_route(config->routes + i, (list_item_route_t *) cursor->val);
 		
 		i++;
@@ -277,6 +278,7 @@ config_load (flowly_config_t *config, char *path)
 		free(cursor_old);
 	}
 	
+	config->network_count = list_count(network_list_head);
 	config->networks = malloc(config->network_count * sizeof (flowly_network_t));
 	
 	cursor = network_list_head;
