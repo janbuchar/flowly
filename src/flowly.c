@@ -7,21 +7,19 @@
 #include <string.h>
 #include <netdb.h>
 #include <err.h>
+#include <time.h>
 
 #include "common.h"
 #include "config.h"
 #include "sflow.h"
 #include "flowstat.h"
 
-int 
-main (int argc, char **argv) 
+int
+create_socket (flowly_config_t *config)
 {
-	flowly_config_t config;
-	config_load(&config, NULL);
-	
 	struct addrinfo *r, *rorig, hint;
 	int error;
-	int sflow_socket;
+	int socket;
 	
 	memset(&hint, 0, sizeof (hint));
 	hint.ai_family = AF_UNSPEC;
@@ -33,24 +31,44 @@ main (int argc, char **argv)
 	}
 	
 	for (rorig = r; r != NULL; r = r->ai_next) {
-		sflow_socket = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
-		if (!bind(sflow_socket, r->ai_addr, r->ai_addrlen)) {
+		socket = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+		if (!bind(socket, r->ai_addr, r->ai_addrlen)) {
 			break;
 		}
-		close(sflow_socket);
+		close(socket);
 	}
 	
 	freeaddrinfo(rorig);
 	
 	if (r == NULL) {
-		close(sflow_socket);
+		close(socket);
 		errx(1, "getaddrinfo");
 	}
 	
 	int optval = 1;
-	if (setsockopt(sflow_socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval)) == -1) {
+	if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval)) == -1) {
 		err(1, "setsockopt");
 	}
+	
+	return socket;
+}
+
+void
+store_stats (stat_container_t *stats, size_t net_id, void *packet, size_t packet_size)
+{
+	flowstat_t *item = stat_container_next(stats[net_id]);
+	item->time = time(NULL);
+	item->byte_count = 0;
+	item->packet_count = 0;
+}
+
+int 
+main (int argc, char **argv) 
+{
+	flowly_config_t config;
+	config_load(&config, NULL);
+	
+	int sflow_socket = create_socket(&config);
 	
 	stat_container_t *stats = malloc(config.network_count * sizeof(stat_container_t));
 	
