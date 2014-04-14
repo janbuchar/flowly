@@ -20,7 +20,7 @@ typedef struct {
 
 typedef stat_number_t (* reduce_fnc_t) (stat_number_t, stat_number_t);
 
-typedef stat_number_t (* reduce_keyfnc_t) (const void *);
+typedef stat_number_t (* key_fnc_t) (const flowstat_t *);
 
 void 
 stat_container_init (stat_container_t * q);
@@ -29,7 +29,7 @@ flowstat_t *
 stat_container_next (stat_container_t * q);
 
 stat_number_t
-stat_container_reduce (stat_container_t * q, reduce_keyfnc_t key, reduce_fnc_t fnc);
+stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc);
 
 void
 stat_container_free (stat_container_t * q);
