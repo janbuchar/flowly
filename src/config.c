@@ -63,8 +63,12 @@ check_context (char *line, config_context_t *context)
 }
 
 int
-load_variable (flowly_config_t *config, char *name, char *value)
+parse_variable (flowly_config_t *config, char *line)
 {
+	static char *delimiter = "\t =\n\r";
+	char *name = strtok(line, delimiter);
+	char *value = strtok(NULL, delimiter);
+	
 	if (name == NULL || value == NULL) {
 		return -1;
 	}
@@ -81,6 +85,50 @@ load_variable (flowly_config_t *config, char *name, char *value)
 	}
 	
 	return 0;
+}
+
+int
+parse_client (list_t *clients, char *line)
+{
+	static char *delimiter = "\t \n\r";
+	
+	char *addr = strtok(line, delimiter);
+	char *port = strtok(NULL, delimiter);
+	char *format = strtok(NULL, delimiter);
+	
+	if (addr != NULL && port != NULL) {
+		list_item_client_t *client = malloc(sizeof (list_item_client_t));
+		client->addr = addr;
+		client->port = port;
+		client->format = format;
+		
+		list_add(clients, client);
+		return 0;
+	}
+	return -1;
+}
+
+int
+parse_route (list_t *routes, char *line)
+{
+	static char *delimiter = "\t \n\r";
+	
+	char * addr = strtok(line, delimiter);
+	char * mask = strtok(NULL, delimiter);
+	char * network = strtok(NULL, delimiter);
+	
+	if (addr == NULL) {
+		return -1; // empty line
+	}
+	if (network != NULL && strlen(network) < NET_NAME_LENGTH) {
+		list_item_route_t *route = malloc(sizeof (list_item_route_t));
+		strcpy(route->network, network);
+		
+		list_add(routes, route);
+		return 0;
+	} else {
+		return -1; // network name too long
+	}
 }
 
 int
@@ -141,18 +189,15 @@ config_load (flowly_config_t *config, char *path)
 	
 	FILE *config_file = fopen(path, "r");
 	char line[LINE_SIZE];
-	char *token, *token2;
 	config_context_t context = VARIABLES;
 	
-	char *var_delim = "\t =\n\r";
-	char *route_delim = "\t \n\r";
-	char *client_delim = "\t \n\r";
+	list_t networks;
+	list_t routes;
+	list_t clients;
 	
-	list_t *network_list_head = NULL, *network_list_tail = NULL;
-	list_t *route_list_head = NULL, *route_list_tail = NULL;
-	list_t *client_list_head = NULL, *client_list_tail = NULL;
-	list_item_route_t * route_item;
-	list_item_client_t * client_item;
+	list_init(&networks);
+	list_init(&routes);
+	list_init(&clients);
 	
 	while (fgets(line, LINE_SIZE, config_file) != NULL) {
 		if (check_context(line, &context) || *line == '#') {
@@ -161,45 +206,26 @@ config_load (flowly_config_t *config, char *path)
 		
 		switch (context) {
 		case VARIABLES:
-			token = strtok(line, var_delim);
-			token2 = strtok(NULL, var_delim);
-			load_variable(config, token, token2);
+			parse_variable(config, line);
 			break;
 		case NETWORKS:
-			route_item = malloc(sizeof (list_item_route_t));
-			route_item->addr = strtok(line, route_delim);
-			route_item->mask = strtok(NULL, route_delim);
-			token = strtok(NULL, route_delim);
-			
-			if (route_item->addr == NULL) {
-				continue; // empty line
-			}
-			if (token != NULL && strlen(token) < NET_NAME_LENGTH) {
-				strcpy(route_item->network, token);
-				list_add(&route_list_head, &route_list_tail, route_item);
-			} else {
-				return -1; // network name too long
-			}
+			parse_route(&routes, line);
 			break;
 		case CLIENTS:
-			client_item = malloc(sizeof (list_item_client_t));
-			client_item->addr = strtok(line, route_delim);
-			client_item->port = strtok(NULL, route_delim);
-			client_item->format = strtok(NULL, route_delim);
-			list_add(&client_list_head, &client_list_tail, client_item);
+			parse_client(&clients, line);
 			break;
 		}
 	}
 	
 	close(config_file);
 	
-	list_t *cursor, *cursor_old, *cursor_net;
+	list_node_t *cursor, *cursor_old, *cursor_net;
 	size_t i = 0, j = 0;
 	
-	config->client_count = list_count(client_list_head);
+	config->client_count = list_count(&clients);
 	config->clients = malloc(config->client_count * sizeof (flowly_client_t));
 	
-	cursor = client_list_head;
+	cursor = clients.head;
 	while (cursor != NULL) {
 		load_client(config->clients + i, (list_item_client_t *) cursor->val);
 		i++;
@@ -209,15 +235,15 @@ config_load (flowly_config_t *config, char *path)
 		free(cursor_old);
 	}
 	
-	config->route_count = list_count(route_list_head);
+	config->route_count = list_count(&routes);
 	config->routes = malloc(config->route_count * sizeof (flowly_route_t));
 	
-	cursor = route_list_head;
+	cursor = routes.head;
 	i = 0;
 	while (cursor != NULL) {
 		char *network = ((list_item_route_t *) cursor->val)->network;
 		
-		cursor_net = network_list_head;
+		cursor_net = networks.head;
 		j = 0;
 		while (cursor_net != NULL) {
 			if (strcmp(((list_item_network_t *) cursor_net->val)->name, network) == 0) {
@@ -231,7 +257,7 @@ config_load (flowly_config_t *config, char *path)
 			list_item_network_t *item = malloc(sizeof (list_item_network_t));
 			strcpy(item->name, network);
 			item->id = j;
-			list_add(&network_list_head, &network_list_tail, item);
+			list_add(&networks, item);
 		}
 		
 		((list_item_route_t *) cursor->val)->network_id = j;
@@ -244,10 +270,10 @@ config_load (flowly_config_t *config, char *path)
 		free(cursor_old);
 	}
 	
-	config->network_count = list_count(network_list_head);
+	config->network_count = list_count(&networks);
 	config->networks = malloc(config->network_count * sizeof (flowly_network_t));
 	
-	cursor = network_list_head;
+	cursor = networks.head;
 	i = 0;
 	while (cursor != NULL) {
 		load_network(config->networks + i, (list_item_network_t *) cursor->val);
