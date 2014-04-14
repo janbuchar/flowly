@@ -1,3 +1,6 @@
+#ifndef _FLOWSTAT_H_
+#define _FLOWSTAT_H_
+
 #include <sys/types.h>
 #include <time.h>
 
@@ -33,3 +36,5 @@ stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc);
 
 void
 stat_container_free (stat_container_t * q);
+
+#endif

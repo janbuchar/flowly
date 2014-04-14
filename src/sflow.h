@@ -1,3 +1,6 @@
+#ifndef _SFLOW_H
+#define _SFLOW_H
+
 #include <sys/types.h>
 
 #define IPV4_SIZE 4
@@ -61,3 +64,5 @@ typedef struct {
 	u_int32_t stripped;
 	u_int32_t header_size;
 } sflow_raw_header_t;
+
+#endif

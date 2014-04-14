@@ -1,3 +1,6 @@
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
+
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -38,3 +41,5 @@ typedef struct {
 int config_load (flowly_config_t * config, char * path);
 
 void config_free (flowly_config_t * config);
+
+#endif

@@ -1,3 +1,4 @@
+#include "../src/list.c"
 #include "../src/config.c"
 
 int main (int argc, char **argv)
