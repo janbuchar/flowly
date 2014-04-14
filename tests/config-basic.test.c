@@ -9,7 +9,7 @@ int main (int argc, char **argv)
 	
 	assert_int(rc, 0, "config_load() return value");
 	
-	assert_int(config.network_count, 2, "Correct network grouping");
+	assert_int(config.network_count, 2, "Correct network group");
 	assert_int(config.route_count, 3, "Route loading");
 	assert_int(config.client_count, 2, "Client loading");
 	
