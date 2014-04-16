@@ -100,10 +100,13 @@ parse_client (list_t *clients, char *line)
 	
 	if (addr != NULL && port != NULL) {
 		list_item_client_t *client = malloc(sizeof (list_item_client_t));
-		client->addr = addr;
-		client->port = port;
-		client->format = format;
-		
+		strcpy(client->addr = malloc(strlen(addr) + 1), addr);
+		strcpy(client->port = malloc(strlen(port) + 1), port);
+		if (format != NULL) {
+			strcpy(client->format = malloc(strlen(format) + 1), format);
+		} else {
+			client->format = NULL;
+		}
 		list_add(clients, client);
 		return 0;
 	}
@@ -243,11 +246,17 @@ config_load (flowly_config_t *config, char *path)
 	config->clients = malloc(config->client_count * sizeof (flowly_client_t));
 	
 	cursor = clients.head;
+	
 	while (cursor != NULL) {
 		load_client(config->clients + i, (list_item_client_t *) cursor->val);
 		i++;
 		cursor_old = cursor;
 		cursor = cursor->next;
+		free(((list_item_client_t *) cursor_old->val)->addr);
+		free(((list_item_client_t *) cursor_old->val)->port);
+		if (((list_item_client_t *) cursor_old->val)->format != NULL) {
+			free(((list_item_client_t *) cursor_old->val)->format);
+		}
 		free(cursor_old->val);
 		free(cursor_old);
 	}
