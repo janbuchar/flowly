@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "config.h"
 #include "list.h"
@@ -133,8 +135,21 @@ parse_route (list_t *routes, char *line)
 
 int
 load_client (flowly_client_t *target, list_item_client_t *client)
-{
-// 	target->addr = 0;
+{	
+	struct addrinfo *res, hint;
+	memset(&hint, 0, sizeof (hint));
+	memset(target, 0, sizeof (flowly_client_t));
+	
+	hint.ai_family = AF_UNSPEC;
+	hint.ai_socktype = SOCK_DGRAM;
+	
+	if (getaddrinfo(client->addr, NULL, &hint, &res) != 0) {
+		return -1;
+	}
+	
+	inet_pton(res->ai_family, client->addr, &target->addr);
+	
+	freeaddrinfo(res);
 	
 	if (atoi(client->port) < 65536) {
 		strcpy(target->port, client->port);
@@ -167,6 +182,8 @@ int
 load_network (flowly_network_t *target, list_item_network_t *network)
 {
 	target->id = network->id;
+	
+	
 	
 	strcpy(target->name, network->name);
 	
