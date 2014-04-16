@@ -4,7 +4,7 @@
 #include "list.h"
 
 void 
-list_init (list_t* list)
+list_init (list_t *list)
 {
 	list->head = NULL;
 	list->tail = NULL;
@@ -13,17 +13,17 @@ list_init (list_t* list)
 void
 list_add (list_t *list, void *item)
 {
-	list_node_t *container = malloc(sizeof (list_node_t));
-	container->val = item;
-	container->next = NULL;
+	list_node_t *node = malloc(sizeof (list_node_t));
+	node->val = item;
+	node->next = NULL;
 	
 	if (list->head == NULL) {
-		list->head = container;
+		list->head = node;
+		list->tail = node;
+	} else {
+		list->tail->next = node;
 	}
-	if (list->tail != NULL) {
-		list->tail->next = container;
-	}
-	list->tail = container;
+	list->tail = node;
 }
 
 size_t
