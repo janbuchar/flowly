@@ -128,6 +128,8 @@ parse_route (list_t *routes, char *line)
 	if (network != NULL && strlen(network) < NET_NAME_LENGTH) {
 		list_item_route_t *route = malloc(sizeof (list_item_route_t));
 		strcpy(route->network, network);
+		strcpy(route->addr = malloc(strlen(addr) + 1), addr);
+		strcpy(route->mask = malloc(strlen(mask) + 1), mask);
 		
 		list_add(routes, route);
 		return 0;
@@ -172,9 +174,28 @@ load_client (flowly_client_t *target, list_item_client_t *client)
 int
 load_route (flowly_route_t *target, list_item_route_t *route)
 {
-// 	target->addr = 0;
+	struct addrinfo *res, hint;
+	memset(&hint, 0, sizeof (hint));
+	memset(target, 0, sizeof (flowly_route_t));
 	
-// 	target->mask = 0;
+	hint.ai_family = AF_UNSPEC;
+	hint.ai_socktype = SOCK_DGRAM;
+	
+	if (getaddrinfo(route->addr, NULL, &hint, &res) != 0) {
+		return -1;
+	}
+	
+	memcpy(&target->addr, res->ai_addr, res->ai_addrlen);
+	
+	freeaddrinfo(res);
+	
+	if (getaddrinfo(route->mask, NULL, &hint, &res) != 0) {
+		return -1;
+	}
+	
+	memcpy(&target->mask, res->ai_addr, res->ai_addrlen);
+	
+	freeaddrinfo(res);
 	
 	target->net_id = route->network_id;
 	
@@ -185,8 +206,6 @@ int
 load_network (flowly_network_t *target, list_item_network_t *network)
 {
 	target->id = network->id;
-	
-	
 	
 	strcpy(target->name, network->name);
 	
@@ -292,6 +311,8 @@ config_load (flowly_config_t *config, char *path)
 		i++;
 		cursor_old = cursor;
 		cursor = cursor->next;
+		free(((list_item_route_t *) cursor_old->val)->addr);
+		free(((list_item_route_t *) cursor_old->val)->mask);
 		free(cursor_old->val);
 		free(cursor_old);
 	}
