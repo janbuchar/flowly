@@ -2,6 +2,7 @@
 #define _SFLOW_H
 
 #include <sys/types.h>
+#include <sys/socket.h>
 
 #define IPV4_SIZE 4
 #define IPV6_SIZE 16
@@ -64,5 +65,11 @@ typedef struct {
 	u_int32_t stripped;
 	u_int32_t header_size;
 } sflow_raw_header_t;
+
+int 
+get_source (void *packet, struct sockaddr_storage *dst);
+
+int
+get_destination (void *packet, struct sockaddr_storage *dst);
 
 #endif

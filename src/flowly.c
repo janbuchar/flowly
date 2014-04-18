@@ -10,9 +10,20 @@
 #include <time.h>
 
 #include "common.h"
+#include "utils.h"
 #include "config.h"
 #include "sflow.h"
 #include "flowstat.h"
+
+typedef struct {
+	size_t from;
+	size_t to;
+} sample_network_t;
+
+typedef enum {
+	IN,
+	OUT
+} flow_direction_t;
 
 int
 create_socket (flowly_config_t *config)
@@ -53,10 +64,34 @@ create_socket (flowly_config_t *config)
 	return socket;
 }
 
-void
-store_stats (stat_container_t *stats, size_t net_id, void *packet, size_t packet_size)
+int
+find_network (flowly_config_t *config, void *packet, sample_network_t *result)
 {
-	flowstat_t *item = stat_container_next(stats[net_id]);
+	struct sockaddr_storage source;
+	struct sockaddr_storage destination;
+	
+	get_source(packet, &source);
+	get_destination(packet, &destination);
+	
+	size_t i;
+	
+	for (i = 0; i < config->route_count; i++) {
+		if (addr_match(&source, &config->routes[i].addr, &config->routes[i].mask)) {
+			result->from = config->routes[i].net_id;
+		}
+	}
+	
+	for (i = 0; i < config->route_count; i++) {
+		if (addr_match(&destination, &config->routes[i].addr, &config->routes[i].mask)) {
+			result->to = config->routes[i].net_id;
+		}
+	}
+}
+
+void
+store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, void *packet, size_t packet_size)
+{
+	flowstat_t *item = stat_container_next(stats[net_id][dir]);
 	item->time = time(NULL);
 	item->byte_count = 0;
 	item->packet_count = 0;
@@ -70,18 +105,20 @@ main (int argc, char **argv)
 	
 	int sflow_socket = create_socket(&config);
 	
-	stat_container_t *stats = malloc(config.network_count * sizeof(stat_container_t));
+	stat_container_t *stats = malloc(2 * config.network_count * sizeof(stat_container_t)); // a container for each network and direction
 	
 	int n;
 	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
+	sample_network_t net;
 	
 	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
 		if (n == MAX_SFLOW_PACKET_SIZE) {
 			continue; // Now that's a big packet... How about a message?
 		}
 		
-		size_t network = find_network(packet, &config); // TODO implement
-		store_stats(stats, network, packet);
+		int rc = find_network(&config, packet, &net);
+		store_stats(stats, net.from, OUT, packet);
+		store_stats(stats, net.to, IN, packet);
 	}
 	
 	return 0;
