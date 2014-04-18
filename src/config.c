@@ -150,7 +150,7 @@ load_client (flowly_client_t *target, list_item_client_t *client)
 		return -1;
 	}
 	
-	inet_pton(res->ai_family, client->addr, &target->addr);
+	memcpy(&target->addr, res->ai_addr, res->ai_addrlen);
 	
 	freeaddrinfo(res);
 	

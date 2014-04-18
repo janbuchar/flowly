@@ -15,7 +15,7 @@ int main (int argc, char **argv)
 	
 	assert_int(config.network_count, 2, "Correct network grouping");
 	assert_int(config.route_count, 3, "Route loading");
-	assert_int(config.client_count, 2, "Client loading");
+	assert_int(config.client_count, 3, "Client loading");
 	
 	assert_string(config.listen_port, "6666", "Port loading");
 	assert_int(config.send_interval, 6666, "Sending interval parsing");
@@ -30,10 +30,16 @@ int main (int argc, char **argv)
 	char dst[255];
 	
 	assert_int(config.clients[0].format, RAW, "Client #1: format");
-	assert_string(inet_ntop(AF_INET, &config.clients[0].addr, &dst, 255), "127.0.0.1", "Client #1: address");
+	assert_string(inet_ntop(AF_INET, &((struct sockaddr_in *) &config.clients[0].addr)->sin_addr, &dst, 255), 
+		"127.0.0.1", "Client #1: address");
 	
 	assert_int(config.clients[1].format, RAW, "Client #2: format");
-	assert_string(inet_ntop(AF_INET, &config.clients[1].addr, &dst, 255), "192.168.0.1", "Client #2: address");
+	assert_string(inet_ntop(AF_INET, &((struct sockaddr_in *) &config.clients[1].addr)->sin_addr, &dst, 255), 
+		"192.168.0.1", "Client #2: address");
+	
+	assert_int(config.clients[2].format, RAW, "Client #3: format");
+	assert_string(inet_ntop(AF_INET6, &((struct sockaddr_in6 *) &config.clients[2].addr)->sin6_addr, &dst, 255), 
+		"2001:db8::1428:57ab", "Client #3: address");
 	
 	config_free(&config);
 	fct_send();
