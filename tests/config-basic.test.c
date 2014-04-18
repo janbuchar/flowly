@@ -3,6 +3,7 @@
 
 #include "../src/list.c"
 #include "../src/config.c"
+#include "../src/utils.c"
 
 void assert_ip (char *expected, struct sockaddr_storage *reality, char *msg)
 {
@@ -37,15 +38,15 @@ int main (int argc, char **argv)
 	assert_int(6666, config.send_interval, "Sending interval parsing");
 	
 	assert_int(0, config.routes[0].net_id, "Route #1: net_id");
-	assert_ip("8.8.4.4", &config.routes[0].addr, "Route #1: address");
+	assert_ip("8.8.0.0", &config.routes[0].addr, "Route #1: address");
 	assert_ip("255.255.0.0", &config.routes[0].mask, "Route #1: mask");
 	
 	assert_int(0, config.routes[1].net_id, "Route #2: net_id");
-	assert_ip("8.8.6.6", &config.routes[1].addr, "Route #2: address");
+	assert_ip("8.0.0.0", &config.routes[1].addr, "Route #2: address");
 	assert_ip("255.0.0.0", &config.routes[1].mask, "Route #2: mask");
 	
 	assert_int(1, config.routes[2].net_id, "Route #3: net_id");
-	assert_ip("10.0.0.138", &config.routes[2].addr, "Route #3: address");
+	assert_ip("10.0.0.0", &config.routes[2].addr, "Route #3: address");
 	assert_ip("255.255.255.0", &config.routes[2].mask, "Route #3: mask");
 	
 	assert_string("network1", config.networks[0].name, "Network #1: name");

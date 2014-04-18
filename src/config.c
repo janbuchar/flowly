@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 
 #include "config.h"
+#include "utils.h"
 #include "list.h"
 
 #define LINE_SIZE 1024
@@ -196,6 +197,8 @@ load_route (flowly_route_t *target, list_item_route_t *route)
 	memcpy(&target->mask, res->ai_addr, res->ai_addrlen);
 	
 	freeaddrinfo(res);
+	
+	addr_mask(&target->addr, &target->mask);
 	
 	target->net_id = route->network_id;
 	
