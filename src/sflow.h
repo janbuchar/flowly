@@ -33,6 +33,10 @@ typedef struct {
 	u_int32_t length;
 } sflow_sample_data_t;
 
+typedef enum {
+	FLOW_SAMPLE = 1
+} sflow_sample_format_t;
+
 /**
  * Enterprise 0 format 1
  * Flow sample (followed by @a record_count records)
@@ -56,6 +60,10 @@ typedef struct {
 	u_int32_t length;
 } sflow_flow_record_t;
 
+typedef enum {
+	RAW_HEADER = 1
+} sflow_record_format_t;
+
 /**
  * Raw packet header record (followed by sampled packet header)
  */
@@ -66,10 +74,22 @@ typedef struct {
 	u_int32_t header_size;
 } sflow_raw_header_t;
 
-int 
-get_source (void *packet, struct sockaddr_storage *dst);
+int
+next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample);
 
 int
-get_destination (void *packet, struct sockaddr_storage *dst);
+next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record);
+
+int
+is_sample_format (sflow_sample_data_t *sample, sflow_sample_format_t format);
+
+int 
+is_record_format (sflow_flow_record_t *record, sflow_record_format_t format);
+
+int 
+get_source (sflow_raw_header_t *header, struct sockaddr_storage *dst);
+
+int
+get_destination (sflow_raw_header_t *header, struct sockaddr_storage *dst);
 
 #endif

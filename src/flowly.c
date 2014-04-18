@@ -67,15 +67,15 @@ create_socket (flowly_config_t *config)
 }
 
 void
-find_network (flowly_config_t *config, void *packet, sample_network_t *result)
+find_network (flowly_config_t *config, sflow_flow_record_t *sample, sample_network_t *result)
 {
 	struct sockaddr_storage source;
 	struct sockaddr_storage destination;
 	result->from_found = 0;
 	result->to_found = 0;
 	
-	get_source(packet, &source);
-	get_destination(packet, &destination);
+	get_source((sflow_raw_header_t *) (sample + 1), &source);
+	get_destination((sflow_raw_header_t *) (sample + 1), &destination);
 	
 	size_t i;
 	
@@ -118,19 +118,35 @@ main (int argc, char **argv)
 	int n;
 	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
 	sample_network_t net;
+	sflow_sample_data_t *sample;
+	sflow_flow_record_t *record;
 	
 	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
 		if (n == MAX_SFLOW_PACKET_SIZE) {
 			continue; // Now that's a big packet... How about a message?
 		}
 		
-		find_network(&config, packet, &net);
+		sample = NULL;
+		while (next_sample(packet, n, &sample)) {
+			if (!is_sample_format(sample->format, FLOW_SAMPLE)) {
+				continue;
+			}
+			
+			record = NULL;
+			while (next_record(sample, &record)) {
+				if (!is_record_format(record->format, RAW_HEADER)) {
+					continue;
+				}
+				
+				find_network(&config, record, &net);
 		
-		if (net.from_found) {
-			store_stats(stats, net.from, OUT, packet);
-		}
-		if (net.to_found) {
-			store_stats(stats, net.to, IN, packet);
+				if (net.from_found) {
+					store_stats(stats, net.from, OUT, packet);
+				}
+				if (net.to_found) {
+					store_stats(stats, net.to, IN, packet);
+				}
+			}
 		}
 	}
 	
