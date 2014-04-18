@@ -16,7 +16,9 @@
 #include "flowstat.h"
 
 typedef struct {
+	int from_found;
 	size_t from;
+	int to_found;
 	size_t to;
 } sample_network_t;
 
@@ -64,11 +66,13 @@ create_socket (flowly_config_t *config)
 	return socket;
 }
 
-int
+void
 find_network (flowly_config_t *config, void *packet, sample_network_t *result)
 {
 	struct sockaddr_storage source;
 	struct sockaddr_storage destination;
+	result->from_found = 0;
+	result->to_found = 0;
 	
 	get_source(packet, &source);
 	get_destination(packet, &destination);
@@ -78,12 +82,16 @@ find_network (flowly_config_t *config, void *packet, sample_network_t *result)
 	for (i = 0; i < config->route_count; i++) {
 		if (addr_match(&source, &config->routes[i].addr, &config->routes[i].mask)) {
 			result->from = config->routes[i].net_id;
+			result->from_found = 1;
+			break;
 		}
 	}
 	
 	for (i = 0; i < config->route_count; i++) {
 		if (addr_match(&destination, &config->routes[i].addr, &config->routes[i].mask)) {
 			result->to = config->routes[i].net_id;
+			result->to_found = 1;
+			break;
 		}
 	}
 }
@@ -116,9 +124,14 @@ main (int argc, char **argv)
 			continue; // Now that's a big packet... How about a message?
 		}
 		
-		int rc = find_network(&config, packet, &net);
-		store_stats(stats, net.from, OUT, packet);
-		store_stats(stats, net.to, IN, packet);
+		find_network(&config, packet, &net);
+		
+		if (net.from_found) {
+			store_stats(stats, net.from, OUT, packet);
+		}
+		if (net.to_found) {
+			store_stats(stats, net.to, IN, packet);
+		}
 	}
 	
 	return 0;
