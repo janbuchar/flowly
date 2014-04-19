@@ -1,10 +1,16 @@
 #include "sflow.h"
 #include <arpa/inet.h>
 
+void *
+byte_increment (void *ptr, size_t n)
+{
+	return ((char *) ptr) + n;
+}
+
 int
 next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 {
-	void *end = ((char *) packet) + packet_size;
+	void *end = byte_increment(packet, packet_size);
 	
 	if (*sample == NULL) {
 		sflow_data_header_t * header = (sflow_data_header_t *) packet;
@@ -23,7 +29,7 @@ next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 		
 		*sample = (sflow_sample_data_t *) (body + 1);
 	} else {
-		*sample = (sflow_sample_data_t *) (((char *) (*sample + 1)) + ntohl((*sample)->length));
+		*sample = (sflow_sample_data_t *) byte_increment(*sample + 1, ntohl((*sample)->length));
 	}
 	
 	return (void *) *sample < end;
@@ -32,12 +38,12 @@ next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 int
 next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record)
 {
-	void *end = ((char *) (sample + 1)) + ntohl(sample->length);
+	void *end = byte_increment(sample + 1, ntohl(sample->length));
 	
 	if (*record == NULL) {
-		*record = (sflow_flow_record_t *) (sample + 1);
+		*record = (sflow_flow_record_t *) byte_increment(sample + 1, sizeof (sflow_flow_sample_t));
 	} else {
-		*record = (sflow_flow_record_t *) (((char *) (*record + 1)) + ntohl((*record)->length));
+		*record = (sflow_flow_record_t *) byte_increment(*record + 1, ntohl((*record)->length));
 	}
 	
 	return (void *) *record < end;
