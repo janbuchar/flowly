@@ -26,7 +26,7 @@ next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 		*sample = (sflow_sample_data_t *) (((char *) (*sample + 1)) + ntohl((*sample)->length));
 	}
 	
-	return *sample < end;
+	return (void *) *sample < end;
 }
 
 int
@@ -40,7 +40,7 @@ next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record)
 		*record = (sflow_flow_record_t *) (((char *) (*record + 1)) + ntohl((*record)->length));
 	}
 	
-	return *record < end;
+	return (void *) *record < end;
 }
 
 int
@@ -56,13 +56,13 @@ is_record_format (sflow_flow_record_t *record, sflow_record_format_t format)
 }
 
 int 
-get_source (sflow_raw_header_t *header, sockaddr_storage* dst)
+get_source (sflow_raw_header_t *header, struct sockaddr_storage *dst)
 {
 	
 }
 
 int
-get_destination (sflow_raw_header_t *header, sockaddr_storage* dst)
+get_destination (sflow_raw_header_t *header, struct sockaddr_storage *dst)
 {
 	
 }
