@@ -6,6 +6,7 @@
 
 #define IPV4_SIZE 4
 #define IPV6_SIZE 16
+#define ETH_HEADER_SIZE 14
 
 /**
  * sFlow datagram header (followed either by an ipv4 or ipv6 address)
@@ -67,12 +68,30 @@ typedef struct {
 } sflow_raw_header_t;
 
 typedef enum {
-	FLOW_SAMPLE = 1
+	FLOW_SAMPLE = 1,
+	SWITCH_DATA = 1001
 } sflow_sample_format_t;
 
 typedef enum {
 	RAW_HEADER = 1
 } sflow_record_format_t;
+
+typedef enum {
+	ETHERNET = 1,
+	ISO88024 = 2,
+	ISO88025 = 3,
+	FDDI = 4,
+	FRAME = 5,
+	X25 = 6,
+	PPP = 7,
+	SMDS = 8,                
+	AAL5 = 9,
+	AAL5IP = 10,
+	IPV4 = 11,
+	IPV6 = 12,
+	MPLS = 13,
+	POS = 14
+} sflow_header_protocol_t;
 
 int
 next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample);

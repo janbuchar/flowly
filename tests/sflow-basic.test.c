@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "assert_ip.c"
 #include "../src/sflow.c"
 
 int main (int argc, char **argv)
@@ -54,6 +55,8 @@ int main (int argc, char **argv)
 	
 	sflow_sample_data_t *sample = NULL;
 	sflow_flow_record_t *record = NULL;
+	sflow_raw_header_t *header = NULL;
+	struct sockaddr_storage ss;
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #1");
 	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #1: format");
@@ -61,6 +64,13 @@ int main (int argc, char **argv)
 	
 	assert_int(1, next_record(sample, &record), "Load record #1:1");
 	assert_int(1, is_record_format(record, RAW_HEADER), "Record #1:1: format");
+	
+	header = (sflow_raw_header_t *) (record + 1);
+	assert_int(1, get_source(header, &ss), "Record #1:1: Loading source address");
+	assert_ip("212.96.179.18", &ss, "Record #1:1: Source address");
+	
+	assert_int(1, get_destination(header, &ss), "Record #1:1: Loading destination address");
+	assert_ip("233.49.26.245", &ss, "Record #1:1: Destination address");
 	
 	assert_int(1, next_record(sample, &record), "Load record #1:2");
 	assert_int(0, is_record_format(record, RAW_HEADER), "Record #1:2: format");
