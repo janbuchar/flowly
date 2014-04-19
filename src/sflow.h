@@ -63,6 +63,7 @@ typedef struct {
 	u_int32_t protocol;
 	u_int32_t frame_length;
 	u_int32_t stripped;
+	u_int32_t header_size;
 } sflow_raw_header_t;
 
 typedef enum {
