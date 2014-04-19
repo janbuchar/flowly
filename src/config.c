@@ -264,7 +264,7 @@ config_load (flowly_config_t *config, char *path)
 		}
 	}
 	
-	close(config_file);
+	fclose(config_file);
 	
 	list_node_t *cursor, *cursor_old, *cursor_net;
 	size_t i = 0, j = 0;
