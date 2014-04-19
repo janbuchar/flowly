@@ -7,14 +7,17 @@ CFLAGS="-Wall"
 FILES=config flowstat list sflow utils
 OBJS=$(FILES:%=$(OBJDIR)/%.o)
 
-all: $(PROG)
+all: $(OBJDIR) $(PROG)
 
 $(PROG): $(OBJS) $(SRCDIR)/flowly.c
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(SRCDIR)/flowly.c
 
-# compile each *.o
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -c $(CFLAGS) -o "$@" "$<"
 
+$(OBJDIR):
+	mkdir -p $@
+
 clean:
-	rm -vfr *~ flowly
+	rm $(PROG)
+	rm -rf $(OBJDIR)
