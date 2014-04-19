@@ -32,7 +32,7 @@ create_socket (flowly_config_t *config)
 {
 	struct addrinfo *r, *rorig, hint;
 	int error;
-	int socket;
+	int sock;
 	
 	memset(&hint, 0, sizeof (hint));
 	hint.ai_family = AF_UNSPEC;
@@ -44,26 +44,26 @@ create_socket (flowly_config_t *config)
 	}
 	
 	for (rorig = r; r != NULL; r = r->ai_next) {
-		socket = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
-		if (!bind(socket, r->ai_addr, r->ai_addrlen)) {
+		sock = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+		if (!bind(sock, r->ai_addr, r->ai_addrlen)) {
 			break;
 		}
-		close(socket);
+		close(sock);
 	}
 	
 	freeaddrinfo(rorig);
 	
 	if (r == NULL) {
-		close(socket);
+		close(sock);
 		errx(1, "getaddrinfo");
 	}
 	
 	int optval = 1;
-	if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval)) == -1) {
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval)) == -1) {
 		err(1, "setsockopt");
 	}
 	
-	return socket;
+	return sock;
 }
 
 void
@@ -99,7 +99,7 @@ find_network (flowly_config_t *config, sflow_flow_record_t *record, sample_netwo
 void
 store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow_flow_sample_t *sample, sflow_raw_header_t *header)
 {
-	flowstat_t *item = stat_container_next(stats[net_id][dir]);
+	flowstat_t *item = stat_container_next(&stats[2 * net_id + dir]);
 	item->time = time(NULL);
 	item->byte_count = 0;
 	item->packet_count = 0;
@@ -141,10 +141,10 @@ main (int argc, char **argv)
 				find_network(&config, record, &net);
 		
 				if (net.from_found) {
-					store_stats(stats, net.from, OUT, sample, record + 1);
+					store_stats(stats, net.from, OUT, (sflow_flow_sample_t *) (sample + 1), (sflow_raw_header_t *) (record + 1));
 				}
 				if (net.to_found) {
-					store_stats(stats, net.to, IN, sample, record + 1);
+					store_stats(stats, net.to, IN, (sflow_flow_sample_t *) (sample + 1), (sflow_raw_header_t *) (record + 1));
 				}
 			}
 		}
