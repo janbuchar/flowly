@@ -230,6 +230,11 @@ config_load (flowly_config_t *config, char *path)
 	config->network_count = 0;
 	
 	FILE *config_file = fopen(path, "r");
+	
+	if (config_file == NULL) {
+		return -1;
+	}
+	
 	char line[LINE_SIZE];
 	config_context_t context = VARIABLES;
 	

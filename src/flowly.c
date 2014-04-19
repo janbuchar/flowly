@@ -109,7 +109,10 @@ int
 main (int argc, char **argv) 
 {
 	flowly_config_t config;
-	config_load(&config, NULL);
+	
+	if (config_load(&config, NULL) == -1) {
+		errx(1, "config_load");
+	}
 	
 	int sflow_socket = create_socket(&config);
 	
