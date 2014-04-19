@@ -56,23 +56,37 @@ int main (int argc, char **argv)
 	sflow_flow_record_t *record = NULL;
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #1");
+	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #1: format");
+	assert_int(15300, ntohl(((sflow_flow_sample_t *) (sample + 1))->sequence_number), "Sample #1: seq_number");
 	
 	assert_int(1, next_record(sample, &record), "Load record #1:1");
+	assert_int(1, is_record_format(record, RAW_HEADER), "Record #1:1: format");
 	
 	assert_int(1, next_record(sample, &record), "Load record #1:2");
+	assert_int(0, is_record_format(record, RAW_HEADER), "Record #1:2: format");
 	
 	assert_int(0, next_record(sample, &record), "Record #1:3 should fail");
 	
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #2");
+	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #2: format");
+	assert_int(15301, ntohl(((sflow_flow_sample_t *) (sample + 1))->sequence_number), "Sample #2: seq_number");
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #3");
+	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #3: format");
+	assert_int(15302, ntohl(((sflow_flow_sample_t *) (sample + 1))->sequence_number), "Sample #3: seq_number");
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #4");
+	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #4: format");
+	assert_int(15303, ntohl(((sflow_flow_sample_t *) (sample + 1))->sequence_number), "Sample #4: seq_number");
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #5");
+	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #5: format");
+	assert_int(15304, ntohl(((sflow_flow_sample_t *) (sample + 1))->sequence_number), "Sample #5: seq_number");
 	
 	assert_int(1, next_sample(&packet, sizeof (packet), &sample), "Load sample #6");
+	assert_int(1, is_sample_format(sample, FLOW_SAMPLE), "Sample #6: format");
+	assert_int(15305, ntohl(((sflow_flow_sample_t *) (sample + 1))->sequence_number), "Sample #6: seq_number");
 	
 	assert_int(0, next_sample(&packet, sizeof (packet), &sample), "Sample #7 should fail");
 	
