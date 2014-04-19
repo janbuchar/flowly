@@ -67,37 +67,37 @@ create_socket (flowly_config_t *config)
 }
 
 void
-find_network (flowly_config_t *config, sflow_flow_record_t *sample, sample_network_t *result)
+find_network (flowly_config_t *config, sflow_flow_record_t *record, sample_network_t *result)
 {
-	struct sockaddr_storage source;
-	struct sockaddr_storage destination;
+	struct sockaddr_storage addr;
+	size_t i;
 	result->from_found = 0;
 	result->to_found = 0;
 	
-	get_source((sflow_raw_header_t *) (sample + 1), &source);
-	get_destination((sflow_raw_header_t *) (sample + 1), &destination);
-	
-	size_t i;
-	
-	for (i = 0; i < config->route_count; i++) {
-		if (addr_match(&source, &config->routes[i].addr, &config->routes[i].mask)) {
-			result->from = config->routes[i].net_id;
-			result->from_found = 1;
-			break;
+	if (get_source((sflow_raw_header_t *) (record + 1), &addr)) {
+		for (i = 0; i < config->route_count; i++) {
+			if (addr_match(&addr, &config->routes[i].addr, &config->routes[i].mask)) {
+				result->from = config->routes[i].net_id;
+				result->from_found = 1;
+				break;
+			}
 		}
 	}
 	
-	for (i = 0; i < config->route_count; i++) {
-		if (addr_match(&destination, &config->routes[i].addr, &config->routes[i].mask)) {
-			result->to = config->routes[i].net_id;
-			result->to_found = 1;
-			break;
+	if (get_destination((sflow_raw_header_t *) (record + 1), &addr)) {
+		for (i = 0; i < config->route_count; i++) {
+			if (addr_match(&addr, &config->routes[i].addr, &config->routes[i].mask)) {
+				result->to = config->routes[i].net_id;
+				result->to_found = 1;
+				break;
+			}
 		}
 	}
+	
 }
 
 void
-store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, void *packet, size_t packet_size)
+store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow_flow_sample_t *sample, sflow_raw_header_t *header)
 {
 	flowstat_t *item = stat_container_next(stats[net_id][dir]);
 	item->time = time(NULL);
@@ -128,23 +128,23 @@ main (int argc, char **argv)
 		
 		sample = NULL;
 		while (next_sample(packet, n, &sample)) {
-			if (!is_sample_format(sample->format, FLOW_SAMPLE)) {
+			if (!is_sample_format(sample, FLOW_SAMPLE)) {
 				continue;
 			}
 			
 			record = NULL;
 			while (next_record(sample, &record)) {
-				if (!is_record_format(record->format, RAW_HEADER)) {
+				if (!is_record_format(record, RAW_HEADER)) {
 					continue;
 				}
 				
 				find_network(&config, record, &net);
 		
 				if (net.from_found) {
-					store_stats(stats, net.from, OUT, packet);
+					store_stats(stats, net.from, OUT, sample, record + 1);
 				}
 				if (net.to_found) {
-					store_stats(stats, net.to, IN, packet);
+					store_stats(stats, net.to, IN, sample, record + 1);
 				}
 			}
 		}
