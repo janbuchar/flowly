@@ -18,7 +18,6 @@ typedef enum {
 
 typedef struct {
 	char name[NET_NAME_LENGTH];
-	size_t id;
 } list_item_network_t;
 
 typedef struct {
@@ -208,8 +207,6 @@ load_route (flowly_route_t *target, list_item_route_t *route)
 int
 load_network (flowly_network_t *target, list_item_network_t *network)
 {
-	target->id = network->id;
-	
 	strcpy(target->name, network->name);
 	
 	return 0;
@@ -309,7 +306,6 @@ config_load (flowly_config_t *config, char *path)
 		if (cursor_net == NULL) {
 			list_item_network_t *item = malloc(sizeof (list_item_network_t));
 			strcpy(item->name, network);
-			item->id = j;
 			list_add(&networks, item);
 		}
 		

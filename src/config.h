@@ -17,7 +17,6 @@ typedef struct {
 } flowly_client_t;
 
 typedef struct {
-	size_t id;
 	char name[NET_NAME_LENGTH];
 } flowly_network_t;
 
