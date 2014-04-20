@@ -73,7 +73,7 @@ find_network (flowly_config_t *config, sflow_flow_record_t *record, sample_netwo
 	result->from_found = 0;
 	result->to_found = 0;
 	
-	if (get_source((sflow_raw_header_t *) (record + 1), &addr)) {
+	if (get_source(get_raw_header(record), &addr)) {
 		for (i = 0; i < config->route_count; i++) {
 			if (addr_match(&addr, &config->routes[i].addr, &config->routes[i].mask)) {
 				result->from = config->routes[i].net_id;
@@ -83,7 +83,7 @@ find_network (flowly_config_t *config, sflow_flow_record_t *record, sample_netwo
 		}
 	}
 	
-	if (get_destination((sflow_raw_header_t *) (record + 1), &addr)) {
+	if (get_destination(get_raw_header(record), &addr)) {
 		for (i = 0; i < config->route_count; i++) {
 			if (addr_match(&addr, &config->routes[i].addr, &config->routes[i].mask)) {
 				result->to = config->routes[i].net_id;
