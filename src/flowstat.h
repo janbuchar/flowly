@@ -11,7 +11,7 @@ typedef u_int32_t stat_number_t;
 typedef struct {
 	stat_number_t packet_count;
 	stat_number_t byte_count;
-	time_t time;
+	struct timespec time;
 } flowstat_t;
 
 typedef struct {
@@ -34,8 +34,8 @@ stat_container_next (stat_container_t * q);
 stat_number_t
 stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc);
 
-time_t
-stat_container_interval (stat_container_t *s);
+void
+stat_container_interval (stat_container_t *s, struct timespec *res);
 
 void
 stat_container_free (stat_container_t * q);

@@ -37,17 +37,25 @@ stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc)
 	return result;
 }
 
-time_t
-stat_container_interval (stat_container_t *s)
+void
+stat_container_interval (stat_container_t *s, struct timespec *res)
 {
 	if (s->full == 0) {
-		return 0;
+		res->tv_sec = 0;
+		res->tv_nsec = 0;
+		return;
 	}
 	
 	size_t low = s->full < STAT_COUNT ? 0 : s->next;
 	size_t high = s->next == 0 ? STAT_COUNT - 1 : s->next - 1;
 	
-	return s->items[high].time - s->items[low].time;
+	if ((s->items[high].time.tv_nsec - s->items[low].time.tv_nsec) < 0) {
+		res->tv_sec = s->items[high].time.tv_sec - s->items[low].time.tv_sec-1;
+		res->tv_nsec = 1000000000 + s->items[high].time.tv_nsec - s->items[low].time.tv_nsec;
+	} else {
+		res->tv_sec = s->items[high].time.tv_sec - s->items[low].time.tv_sec;
+		res->tv_nsec = s->items[high].time.tv_nsec - s->items[low].time.tv_nsec;
+	}
 }
 
 void

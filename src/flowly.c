@@ -99,7 +99,7 @@ void
 store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow_flow_sample_t *sample, sflow_raw_header_t *header)
 {
 	flowstat_t *item = stat_container_next(&stats[2 * net_id + dir]);
-	item->time = time(NULL);
+	clock_gettime(CLOCK_REALTIME, &item->time);
 	item->byte_count = ntohl(sample->sample_rate) * ntohl(header->frame_length);
 	item->packet_count = ntohl(sample->sample_rate);
 }
