@@ -7,6 +7,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <err.h>
+#include <errno.h>
 #include <time.h>
 
 #include "common.h"
@@ -45,22 +46,23 @@ create_socket (flowly_config_t *config)
 	
 	for (rorig = r; r != NULL; r = r->ai_next) {
 		sock = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
-		if (!bind(sock, r->ai_addr, r->ai_addrlen)) {
+		
+		int optval = 1;
+		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval)) == -1) {
+			err(1, "setsockopt");
+		}
+		
+		if (bind(sock, r->ai_addr, r->ai_addrlen) == 0) {
 			break;
 		}
+		
 		close(sock);
 	}
 	
 	freeaddrinfo(rorig);
 	
 	if (r == NULL) {
-		close(sock);
-		errx(1, "getaddrinfo");
-	}
-	
-	int optval = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval)) == -1) {
-		err(1, "setsockopt");
+		errx(1, "getaddrinfo: %s", strerror(errno));
 	}
 	
 	return sock;
@@ -125,24 +127,25 @@ main (int argc, char **argv)
 	sflow_flow_record_t *record;
 	
 	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
+		printf("Got something!\n");
 		if (n == MAX_SFLOW_PACKET_SIZE) {
 			continue; // Now that's a big packet... How about a message?
 		}
 		
 		sample = NULL;
-		while (next_sample(packet, n, &sample)) {
+		while (next_sample(packet, n, &sample) > 0) {
 			if (!is_sample_format(sample, FLOW_SAMPLE)) {
 				continue;
 			}
 			
 			record = NULL;
-			while (next_record(sample, &record)) {
+			while (next_record(sample, &record) > 0) {
 				if (!is_record_format(record, RAW_HEADER)) {
 					continue;
 				}
 				
 				find_network(&config, record, &net);
-		
+				
 				if (net.from_found) {
 					store_stats(stats, net.from, OUT, (sflow_flow_sample_t *) (sample + 1), (sflow_raw_header_t *) (record + 1));
 				}

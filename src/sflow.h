@@ -1,5 +1,5 @@
-#ifndef _SFLOW_H
-#define _SFLOW_H
+#ifndef _SFLOW_H_
+#define _SFLOW_H_
 
 #include <sys/types.h>
 #include <sys/socket.h>
