@@ -9,6 +9,7 @@ def create_socket (addr, port):
 		s = socket.socket(family, type = socket.SOCK_DGRAM)
 		try:
 			s.bind(sockaddr)
+			s.setblocking(False)
 			return s
 		except Exception:
 			s.close()
