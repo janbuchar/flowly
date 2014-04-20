@@ -9,12 +9,14 @@
 #include <err.h>
 #include <errno.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 #include "common.h"
 #include "utils.h"
 #include "config.h"
 #include "sflow.h"
 #include "flowstat.h"
+#include "output.h"
 
 typedef struct {
 	int from_found;
@@ -22,11 +24,6 @@ typedef struct {
 	int to_found;
 	size_t to;
 } sample_network_t;
-
-typedef enum {
-	IN,
-	OUT
-} flow_direction_t;
 
 int
 create_socket (flowly_config_t *config)
@@ -103,8 +100,8 @@ store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow
 {
 	flowstat_t *item = stat_container_next(&stats[2 * net_id + dir]);
 	item->time = time(NULL);
-	item->byte_count = 0;
-	item->packet_count = 0;
+	item->byte_count = ntohl(sample->sample_rate) * ntohl(header->frame_length);
+	item->packet_count = ntohl(sample->sample_rate);
 }
 
 int 
@@ -127,7 +124,6 @@ main (int argc, char **argv)
 	sflow_flow_record_t *record;
 	
 	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
-		printf("Got something!\n");
 		if (n == MAX_SFLOW_PACKET_SIZE) {
 			continue; // Now that's a big packet... How about a message?
 		}
@@ -147,13 +143,15 @@ main (int argc, char **argv)
 				find_network(&config, record, &net);
 				
 				if (net.from_found) {
-					store_stats(stats, net.from, OUT, (sflow_flow_sample_t *) (sample + 1), (sflow_raw_header_t *) (record + 1));
+					store_stats(stats, net.from, OUT, get_flow_sample(sample), get_raw_header(record));
 				}
 				if (net.to_found) {
-					store_stats(stats, net.to, IN, (sflow_flow_sample_t *) (sample + 1), (sflow_raw_header_t *) (record + 1));
+					store_stats(stats, net.to, IN, get_flow_sample(sample), get_raw_header(record));
 				}
 			}
 		}
+		
+		output(&config, stats);
 	}
 	
 	return 0;

@@ -9,6 +9,12 @@ byte_increment (void *ptr, size_t n)
 	return ((char *) ptr) + n;
 }
 
+sflow_flow_sample_t *
+get_flow_sample (sflow_sample_data_t *sample)
+{
+	return (sflow_flow_sample_t *) (sample + 1);
+}
+
 int
 next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 {
@@ -36,6 +42,13 @@ next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 	
 	return (void *) *sample < end;
 }
+
+sflow_raw_header_t *
+get_raw_header (sflow_flow_record_t *record)
+{
+	return (sflow_raw_header_t *) (record + 1);
+}
+
 
 int
 next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record)

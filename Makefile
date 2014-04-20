@@ -4,7 +4,7 @@ OBJDIR=build
 SRCDIR=src
 CFLAGS="-Wall"
 
-FILES=config flowstat list sflow utils
+FILES=config flowstat list output sflow utils
 OBJS=$(FILES:%=$(OBJDIR)/%.o)
 
 all: $(OBJDIR) $(PROG)

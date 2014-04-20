@@ -42,3 +42,21 @@ stat_container_free (stat_container_t * q)
 {
 	
 }
+
+stat_number_t
+sum (stat_number_t a, stat_number_t b)
+{
+	return a + b;
+}
+
+stat_number_t 
+key_packet_count (const flowstat_t *stat)
+{
+	return stat->packet_count;
+}
+
+stat_number_t 
+key_byte_count(const flowstat_t *stat)
+{
+	return stat->byte_count;
+}

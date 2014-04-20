@@ -93,8 +93,14 @@ typedef enum {
 	POS = 14
 } sflow_header_protocol_t;
 
+sflow_flow_sample_t *
+get_flow_sample (sflow_sample_data_t *sample);
+
 int
 next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample);
+
+sflow_raw_header_t *
+get_raw_header (sflow_flow_record_t *record);
 
 int
 next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record);

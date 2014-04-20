@@ -5,4 +5,9 @@
 #define MAX_SFLOW_PACKET_SIZE 65536
 #define STAT_COUNT 255
 
+typedef enum {
+	IN,
+	OUT
+} flow_direction_t;
+
 #endif
