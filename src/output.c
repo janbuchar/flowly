@@ -16,7 +16,7 @@ output (flowly_config_t *config, stat_container_t *stats)
 			stat_number_t packets = stat_container_reduce(stats, key_packet_count, sum);
 			
 			printf(dir == IN ? "%s IN\n" : "%s OUT \n", config->networks[i].name);
-			printf("%zu bytes in %zu packets", bytes, packets);
+			printf("%u bytes in %u packets (in %ld seconds)", bytes, packets, stat_container_interval(stats));
 			printf("\n");
 			
 			stats++;

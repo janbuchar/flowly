@@ -37,6 +37,19 @@ stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc)
 	return result;
 }
 
+time_t
+stat_container_interval (stat_container_t *s)
+{
+	if (s->full == 0) {
+		return 0;
+	}
+	
+	size_t low = s->full < STAT_COUNT ? 0 : s->next;
+	size_t high = s->next == 0 ? STAT_COUNT - 1 : s->next - 1;
+	
+	return s->items[high].time - s->items[low].time;
+}
+
 void
 stat_container_free (stat_container_t * q)
 {
