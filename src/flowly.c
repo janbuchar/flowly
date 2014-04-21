@@ -116,6 +116,10 @@ main (int argc, char **argv)
 	int sflow_socket = create_socket(&config);
 	
 	stat_container_t *stats = malloc(2 * config.network_count * sizeof(stat_container_t)); // a container for each network and direction
+	stat_container_t *stat_it;
+	for (stat_it = stats; stat_it - stats < 2 * config.network_count; ++stat_it) {
+		stat_container_init(stat_it);
+	}
 	
 	int n;
 	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
