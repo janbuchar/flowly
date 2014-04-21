@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "utils.h"
 
@@ -75,6 +76,46 @@ addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, str
 		return addr_match_ipv4((struct sockaddr_in *) &addr_masked, (struct sockaddr_in *) network);
 	case AF_INET6:
 		return addr_match_ipv6((struct sockaddr_in6 *) &addr_masked, (struct sockaddr_in6 *) network);
+	default:
+		return -1;
+	}
+}
+
+int
+addr_cidr_ipv4 (struct sockaddr_in *addr, int n)
+{
+	if (n < 0 || n > 32) {
+		return -1;
+	}
+	
+	// Fill the address with ones and shift it to create a zero gap
+	memset(&addr->sin_addr.s_addr, 255, sizeof (addr->sin_addr.s_addr));
+	addr->sin_addr.s_addr >>= (32 - n);
+	
+	return 1;
+}
+
+int
+addr_cidr_ipv6 (struct sockaddr_in6 *addr, int n)
+{
+	if (n < 0 || n > 128) {
+		return -1;
+	}
+	
+	u_int32_t *a = (u_int32_t *) &addr->sin6_addr;
+	memset(a, 255, 4 * sizeof (u_int32_t));
+	
+	return -1; // TODO
+}
+
+int 
+addr_cidr (struct sockaddr_storage *addr, int n)
+{
+	switch (addr->ss_family) {
+	case AF_INET:
+		return addr_cidr_ipv4((struct sockaddr_in *) addr, n);
+	case AF_INET6:
+		return addr_cidr_ipv6((struct sockaddr_in6 *) addr, n);
 	default:
 		return -1;
 	}

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 #include "config.h"
 #include "utils.h"
@@ -64,6 +65,19 @@ check_context (char *line, config_context_t *context)
 	return 0;
 }
 
+int 
+str_is_numeric (char *s)
+{
+	while (*s != 0) {
+		if (!isdigit(*s)) {
+			return 0;
+		}
+		++s;
+	}
+	
+	return 1;
+}
+
 int
 parse_variable (flowly_config_t *config, char *line)
 {
@@ -118,7 +132,7 @@ parse_route (list_t *routes, char *line)
 {
 	static char *delimiter = "\t \n\r";
 	
-	char * addr = strtok(line, delimiter);
+	char * addr = strtok(line, "/\t \n\r");
 	char * mask = strtok(NULL, delimiter);
 	char * network = strtok(NULL, delimiter);
 	
@@ -193,7 +207,12 @@ load_route (flowly_route_t *target, list_item_route_t *route)
 		return -1;
 	}
 	
-	memcpy(&target->mask, res->ai_addr, res->ai_addrlen);
+	if (str_is_numeric(route->mask)) {
+		target->mask.ss_family = target->addr.ss_family;
+		addr_cidr(&target->mask, atoi(route->mask));
+	} else {
+		memcpy(&target->mask, res->ai_addr, res->ai_addrlen);
+	}
 	
 	freeaddrinfo(res);
 	
