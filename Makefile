@@ -2,18 +2,19 @@ CC=gcc
 PROG=flowly
 OBJDIR=build
 SRCDIR=src
-CFLAGS="-Wall"
+CFLAGS=-Wall
+LDFLAGS=-lrt
 
 FILES=config flowstat list output sflow utils
 OBJS=$(FILES:%=$(OBJDIR)/%.o)
 
 all: $(OBJDIR) $(PROG)
 
-$(PROG): $(OBJS) $(SRCDIR)/flowly.c
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(SRCDIR)/flowly.c
+$(PROG): $(OBJS) $(SRCDIR)/$(PROG).c
+	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $(OBJS) $(SRCDIR)/$(PROG).c
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) -c $(CFLAGS) -o "$@" "$<"
+	$(CC) -c $(CFLAGS) -o "$@" $(LDFLAGS) "$<"
 
 $(OBJDIR):
 	mkdir -p $@
