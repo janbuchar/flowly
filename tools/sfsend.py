@@ -1,4 +1,6 @@
 import socket
+import random
+import captures
 
 def send_data (sock : socket.socket, addr, data : str):
 	ints = [int(data[i : i + 2], 16) for i in range(0, len(data), 2)] # add endian conversion if necessary
@@ -37,3 +39,17 @@ def send_list (addr, port, data):
 	with create_socket(family) as sock:
 		for item in data:
 			send_data(sock, sockaddr, item)
+
+def berserk (addr, port):
+	"""
+	Gets medieval on a collector :)
+	
+	Args:
+		addr: a string representation of destination address
+		port: destination port
+	"""
+	def gen ():
+		for i in range(10000):
+			yield captures.data[random.randint(0, len(captures.data) - 1)]
+	
+	send_list(addr, port, gen())
