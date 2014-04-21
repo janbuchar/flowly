@@ -27,6 +27,10 @@ stat_container_next (stat_container_t * q)
 stat_number_t
 stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc)
 {
+	if (q->full == 0) {
+		return 0;
+	}
+	
 	size_t i = 0;
 	stat_number_t result = key(&(q->items[0]));
 	
