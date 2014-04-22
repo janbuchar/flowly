@@ -10,6 +10,7 @@
 #include "list.h"
 
 #define LINE_SIZE 1024
+#define COMMENT_DELIMITER '#'
 
 typedef enum {
 	VARIABLES,
@@ -17,22 +18,33 @@ typedef enum {
 	CLIENTS
 } config_context_t;
 
+typedef enum {
+	E_UNKNOWN_CONTEXT = -1,
+	E_INCOMPLETE_VARIABLE = -2,
+	E_UNKNOWN_VARIABLE = -3,
+	E_INCOMPLETE_CLIENT = -4,
+	E_INCOMPLETE_ROUTE = -5,
+	E_INVALID_ADDRESS = -6,
+	E_INVALID_PORT = -7,
+	E_SYNTAX_ERROR = -8,
+	E_UNEXPECTED_TOKEN = -9,
+	E_NETWORK_NAME_LONG = -10,
+	E_INVALID_FORMAT = -11,
+	E_FILE_NOT_FOUND = -12
+} config_error_t;
+
 typedef struct {
 	char name[NET_NAME_LENGTH];
 } list_item_network_t;
 
 typedef struct {
-	char *addr;
-	char *mask;
+	struct sockaddr_storage addr;
+	struct sockaddr_storage mask;
 	char network[NET_NAME_LENGTH];
 	size_t network_id;
 } list_item_route_t;
 
-typedef struct {
-	char *addr;
-	char *port;
-	char *format;
-} list_item_client_t;
+typedef flowly_client_t list_item_client_t;
 
 int
 check_context (char *line, config_context_t *context)
@@ -42,7 +54,7 @@ check_context (char *line, config_context_t *context)
 		
 		while (line[pos] != ']') {
 			if (line[pos] == 0) {
-				return -1; // Syntax error
+				return E_SYNTAX_ERROR;
 			}
 			++pos;
 		}
@@ -56,7 +68,7 @@ check_context (char *line, config_context_t *context)
 		} else if (strcmp(new_context, "clients") == 0) {
 			*context = CLIENTS;
 		} else {
-			return -1; // Unknown context
+			return E_UNKNOWN_CONTEXT;
 		}
 		
 		return 1;
@@ -85,20 +97,45 @@ parse_variable (flowly_config_t *config, char *line)
 	char *name = strtok(line, delimiter);
 	char *value = strtok(NULL, delimiter);
 	
-	if (name == NULL || value == NULL) {
-		return -1;
+	if (name == NULL) {
+		return 0; // empty line
+	}
+	
+	if (value == NULL) {
+		return E_INCOMPLETE_VARIABLE;
 	}
 	
 	if (strcmp(name, "port") == 0) {
-		if (atoi(value) > 65535) {
-			return -1;
+		if (atoi(value) > 65535 || atoi(value) < 0) {
+			return E_INVALID_PORT;
 		}
 		strcpy(config->listen_port, value);
 	} else if (strcmp(name, "send_interval") == 0) {
 		config->send_interval = atoi(value);
 	} else {
-		return -1;
+		return E_UNKNOWN_VARIABLE;
 	}
+	
+	return 0;
+}
+
+int
+parse_addr (struct sockaddr_storage *addr, char *addr_str)
+{
+	struct addrinfo *res, hint;
+	memset(&hint, 0, sizeof (hint));
+	memset(addr, 0, sizeof (struct sockaddr_storage));
+	
+	hint.ai_family = AF_UNSPEC;
+	hint.ai_socktype = SOCK_DGRAM;
+	
+	if (getaddrinfo(addr_str, NULL, &hint, &res) != 0) {
+		return E_INVALID_ADDRESS;
+	}
+	
+	memcpy(addr, res->ai_addr, res->ai_addrlen);
+	
+	freeaddrinfo(res);
 	
 	return 0;
 }
@@ -112,112 +149,94 @@ parse_client (list_t *clients, char *line)
 	char *port = strtok(NULL, delimiter);
 	char *format = strtok(NULL, delimiter);
 	
-	if (addr != NULL && port != NULL) {
-		list_item_client_t *client = malloc(sizeof (list_item_client_t));
-		strcpy(client->addr = malloc(strlen(addr) + 1), addr);
-		strcpy(client->port = malloc(strlen(port) + 1), port);
-		if (format != NULL) {
-			strcpy(client->format = malloc(strlen(format) + 1), format);
-		} else {
-			client->format = NULL;
-		}
-		list_add(clients, client);
-		return 0;
+	if (addr == NULL) {
+		return 0; // empty line
 	}
-	return -1;
+	
+	if (port == NULL) {
+		return E_INCOMPLETE_CLIENT;
+	}
+	
+	if (!str_is_numeric(port) || atoi(port) > 65536 || atoi(port) < 0) {
+		return E_INVALID_PORT;
+	}
+	
+	list_item_client_t *client = malloc(sizeof (list_item_client_t));
+	
+	if (format == NULL || strcmp(format, "raw") == 0) {
+		client->format = RAW;
+	} else {
+		return E_INVALID_FORMAT;
+	}
+	
+	int rc = parse_addr(&client->addr, addr);
+	if (rc != 0) {
+		return rc;
+	}
+	
+	strcpy(client->port, port);
+	
+	list_add(clients, client);
+	
+	return 0;
 }
 
 int
 parse_route (list_t *routes, char *line)
 {
 	static char *delimiter = "\t \n\r";
+	int rc;
 	
-	char * addr = strtok(line, "/\t \n\r");
-	char * mask = strtok(NULL, delimiter);
-	char * network = strtok(NULL, delimiter);
+	char *addr = strtok(line, "/\t \n\r");
+	char *mask = strtok(NULL, delimiter);
+	char *network = strtok(NULL, delimiter);
 	
 	if (addr == NULL) {
-		return -1; // empty line
+		return 0; // empty line
 	}
-	if (network != NULL && strlen(network) < NET_NAME_LENGTH) {
-		list_item_route_t *route = malloc(sizeof (list_item_route_t));
-		strcpy(route->network, network);
-		strcpy(route->addr = malloc(strlen(addr) + 1), addr);
-		strcpy(route->mask = malloc(strlen(mask) + 1), mask);
-		
-		list_add(routes, route);
-		return 0;
+	
+	if (strlen(network) >= NET_NAME_LENGTH) {
+		return E_NETWORK_NAME_LONG;
+	}
+	
+	if (network == NULL) {
+		return E_INCOMPLETE_ROUTE;
+	}
+	
+	list_item_route_t *route = malloc(sizeof (list_item_route_t));
+	memset(route, 0, sizeof (list_item_route_t));
+	
+	strcpy(route->network, network);
+	
+	rc = parse_addr(&route->addr, addr);
+	if (rc != 0) {
+		free(route);
+		return rc;
+	}
+	
+	if (str_is_numeric(mask)) {
+		route->mask.ss_family = route->addr.ss_family;
+		rc = addr_cidr(&route->mask, atoi(mask));
 	} else {
-		return -1; // network name too long
-	}
-}
-
-int
-load_client (flowly_client_t *target, list_item_client_t *client)
-{	
-	struct addrinfo *res, hint;
-	memset(&hint, 0, sizeof (hint));
-	memset(target, 0, sizeof (flowly_client_t));
-	
-	hint.ai_family = AF_UNSPEC;
-	hint.ai_socktype = SOCK_DGRAM;
-	
-	if (getaddrinfo(client->addr, NULL, &hint, &res) != 0) {
-		return -1;
+		rc = parse_addr(&route->mask, mask);
 	}
 	
-	memcpy(&target->addr, res->ai_addr, res->ai_addrlen);
-	
-	freeaddrinfo(res);
-	
-	if (atoi(client->port) < 65536) {
-		strcpy(target->port, client->port);
-	} else {
-		return -1;
+	if (rc != 0) {
+		free(route);
+		return rc;
 	}
 	
-	if (client->format == NULL|| strcmp(client->format, "raw") == 0) {
-		target->format = RAW;
-	} else {
-		return -1;
-	}
+	addr_mask(&route->addr, &route->mask);
 	
+	list_add(routes, route);
 	return 0;
 }
 
 int
 load_route (flowly_route_t *target, list_item_route_t *route)
-{
-	struct addrinfo *res, hint;
-	memset(&hint, 0, sizeof (hint));
-	memset(target, 0, sizeof (flowly_route_t));
-	
-	hint.ai_family = AF_UNSPEC;
-	hint.ai_socktype = SOCK_DGRAM;
-	
-	if (getaddrinfo(route->addr, NULL, &hint, &res) != 0) {
-		return -1;
-	}
-	
-	memcpy(&target->addr, res->ai_addr, res->ai_addrlen);
-	
-	freeaddrinfo(res);
-	
-	if (getaddrinfo(route->mask, NULL, &hint, &res) != 0) {
-		return -1;
-	}
-	
-	if (str_is_numeric(route->mask)) {
-		target->mask.ss_family = target->addr.ss_family;
-		addr_cidr(&target->mask, atoi(route->mask));
-	} else {
-		memcpy(&target->mask, res->ai_addr, res->ai_addrlen);
-	}
-	
-	freeaddrinfo(res);
-	
-	addr_mask(&target->addr, &target->mask);
-	
+{	
+	target->addr = route->addr;
+	target->mask = route->mask;
 	target->net_id = route->network_id;
 	
 	return 0;
@@ -244,15 +263,19 @@ config_load (flowly_config_t *config, char *path)
 	config->client_count = 0;
 	config->route_count = 0;
 	config->network_count = 0;
+	config->clients = NULL;
+	config->routes = NULL;
+	config->networks = NULL;
 	
 	FILE *config_file = fopen(path, "r");
 	
 	if (config_file == NULL) {
-		return -1;
+		return E_FILE_NOT_FOUND;
 	}
 	
 	char line[LINE_SIZE];
 	config_context_t context = VARIABLES;
+	int rc;
 	
 	list_t networks;
 	list_t routes;
@@ -263,20 +286,34 @@ config_load (flowly_config_t *config, char *path)
 	list_init(&clients);
 	
 	while (fgets(line, LINE_SIZE, config_file) != NULL) {
-		if (check_context(line, &context) || *line == '#') {
+		if (rc = check_context(line, &context) || *line == COMMENT_DELIMITER) {
 			continue;
+		}
+		
+		if (rc != 0) {
+			return rc;
 		}
 		
 		switch (context) {
 		case VARIABLES:
-			parse_variable(config, line);
+			rc = parse_variable(config, line);
 			break;
 		case NETWORKS:
-			parse_route(&routes, line);
+			rc = parse_route(&routes, line);
 			break;
 		case CLIENTS:
-			parse_client(&clients, line);
+			rc = parse_client(&clients, line);
 			break;
+		}
+		
+		char *token = strtok(NULL, "\t \n\r");
+		
+		if (token != NULL && token[0] != COMMENT_DELIMITER) {
+			return E_UNEXPECTED_TOKEN;
+		}
+		
+		if (rc != 0) {
+			return rc;
 		}
 	}
 	
@@ -291,15 +328,12 @@ config_load (flowly_config_t *config, char *path)
 	cursor = clients.head;
 	
 	while (cursor != NULL) {
-		load_client(config->clients + i, (list_item_client_t *) cursor->val);
+		config->clients[i] = *((flowly_client_t *) cursor->val);
+		
 		i++;
 		cursor_old = cursor;
 		cursor = cursor->next;
-		free(((list_item_client_t *) cursor_old->val)->addr);
-		free(((list_item_client_t *) cursor_old->val)->port);
-		if (((list_item_client_t *) cursor_old->val)->format != NULL) {
-			free(((list_item_client_t *) cursor_old->val)->format);
-		}
+		
 		free(cursor_old->val);
 		free(cursor_old);
 	}
@@ -329,13 +363,14 @@ config_load (flowly_config_t *config, char *path)
 		}
 		
 		((list_item_route_t *) cursor->val)->network_id = j;
-		load_route(config->routes + i, (list_item_route_t *) cursor->val);
+		rc = load_route(config->routes + i, (list_item_route_t *) cursor->val);
+		if (rc != 0) {
+			return rc;
+		}
 		
 		i++;
 		cursor_old = cursor;
 		cursor = cursor->next;
-		free(((list_item_route_t *) cursor_old->val)->addr);
-		free(((list_item_route_t *) cursor_old->val)->mask);
 		free(cursor_old->val);
 		free(cursor_old);
 	}
@@ -346,7 +381,10 @@ config_load (flowly_config_t *config, char *path)
 	cursor = networks.head;
 	i = 0;
 	while (cursor != NULL) {
-		load_network(config->networks + i, (list_item_network_t *) cursor->val);
+		rc = load_network(config->networks + i, (list_item_network_t *) cursor->val);
+		if (rc != 0) {
+			return rc;
+		}
 		
 		i++;
 		cursor_old = cursor;
@@ -361,7 +399,10 @@ config_load (flowly_config_t *config, char *path)
 void 
 config_free (flowly_config_t *config)
 {
-	free(config->clients);
-	free(config->networks);
-	free(config->routes);
+	if (config->clients)
+		free(config->clients);
+	if (config->networks)
+		free(config->networks);
+	if (config->routes)
+		free(config->routes);
 }

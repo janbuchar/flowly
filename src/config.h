@@ -41,4 +41,7 @@ int config_load (flowly_config_t * config, char * path);
 
 void config_free (flowly_config_t * config);
 
+char *
+config_strerror (int err);
+
 #endif

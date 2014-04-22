@@ -14,7 +14,6 @@ int main (int argc, char **argv)
 	int rc = config_load(&config, "config-basic.conf");
 	
 	char dst[255];
-	
 	assert_int(rc, 0, "config_load() return value");
 	
 	assert_int(2, config.network_count, "Correct network grouping");
@@ -60,3 +59,4 @@ int main (int argc, char **argv)
 	fct_send();
 	return 0;
 }
+	
