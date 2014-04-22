@@ -102,10 +102,22 @@ addr_cidr_ipv6 (struct sockaddr_in6 *addr, int n)
 		return -1;
 	}
 	
-	u_int32_t *a = (u_int32_t *) &addr->sin6_addr;
-	memset(a, 255, 4 * sizeof (u_int32_t));
+	u_int32_t *a = ((u_int32_t *) &addr->sin6_addr);
 	
-	return -1; // TODO
+	while (n >= 32) {
+		memset(a, 255, sizeof (u_int32_t));
+		n -= 32;
+		a++;
+	}
+	
+	if (n == 0) {
+		memset(a, 0, sizeof (u_int32_t));
+	} else {
+		memset(a, 255, sizeof (u_int32_t));
+		*a <<= (32 - n);
+	}
+	
+	return 1;
 }
 
 int 

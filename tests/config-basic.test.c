@@ -18,7 +18,7 @@ int main (int argc, char **argv)
 	assert_int(rc, 0, "config_load() return value");
 	
 	assert_int(2, config.network_count, "Correct network grouping");
-	assert_int(4, config.route_count, "Route loading");
+	assert_int(5, config.route_count, "Route loading");
 	assert_int(3, config.client_count, "Client loading");
 	
 	assert_string("6666", config.listen_port, "Port loading");
@@ -39,6 +39,10 @@ int main (int argc, char **argv)
 	assert_int(1, config.routes[3].net_id, "Route #4: net_id");
 	assert_ip("168.85.58.0", &config.routes[3].addr, "Route #4: address (CIDR)");
 	assert_ip("255.255.255.0", &config.routes[3].mask, "Route #4: mask (CIDR)");
+	
+	assert_int(1, config.routes[4].net_id, "Route #5: net_id");
+	assert_ip6("2001:db8::", &config.routes[4].addr, "Route #5: address (CIDR)");
+	assert_ip6("ffff:ffff:ffff:ffff:ffff:ffff::", &config.routes[4].mask, "Route #5: mask (CIDR)");
 	
 	assert_string("network1", config.networks[0].name, "Network #1: name");
 	assert_string("network2", config.networks[1].name, "Network #2: name");
