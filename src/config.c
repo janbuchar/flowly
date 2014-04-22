@@ -4,6 +4,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <err.h>
 
 #include "config.h"
 #include "utils.h"
@@ -242,16 +243,8 @@ load_route (flowly_route_t *target, list_item_route_t *route)
 	return 0;
 }
 
-int
-load_network (flowly_network_t *target, list_item_network_t *network)
-{
-	strcpy(target->name, network->name);
-	
-	return 0;
-}
-
 int 
-config_load (flowly_config_t *config, char *path)
+config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 {
 	if (path == NULL) {
 		path = "flowly.conf";
@@ -267,15 +260,18 @@ config_load (flowly_config_t *config, char *path)
 	config->routes = NULL;
 	config->networks = NULL;
 	
+	int rc;
+	
 	FILE *config_file = fopen(path, "r");
 	
 	if (config_file == NULL) {
-		return E_FILE_NOT_FOUND;
+		rc = E_FILE_NOT_FOUND;
+		goto error;
 	}
 	
 	char line[LINE_SIZE];
+	size_t line_number = 0;
 	config_context_t context = VARIABLES;
-	int rc;
 	
 	list_t networks;
 	list_t routes;
@@ -286,12 +282,14 @@ config_load (flowly_config_t *config, char *path)
 	list_init(&clients);
 	
 	while (fgets(line, LINE_SIZE, config_file) != NULL) {
-		if (rc = check_context(line, &context) || *line == COMMENT_DELIMITER) {
+		line_number++;
+		
+		if ((rc = check_context(line, &context)) || *line == COMMENT_DELIMITER) {
 			continue;
 		}
 		
 		if (rc != 0) {
-			return rc;
+			goto error;
 		}
 		
 		switch (context) {
@@ -309,11 +307,11 @@ config_load (flowly_config_t *config, char *path)
 		char *token = strtok(NULL, "\t \n\r");
 		
 		if (token != NULL && token[0] != COMMENT_DELIMITER) {
-			return E_UNEXPECTED_TOKEN;
+			rc = E_UNEXPECTED_TOKEN;
 		}
 		
 		if (rc != 0) {
-			return rc;
+			goto error;
 		}
 	}
 	
@@ -365,7 +363,7 @@ config_load (flowly_config_t *config, char *path)
 		((list_item_route_t *) cursor->val)->network_id = j;
 		rc = load_route(config->routes + i, (list_item_route_t *) cursor->val);
 		if (rc != 0) {
-			return rc;
+			goto error;
 		}
 		
 		i++;
@@ -381,12 +379,9 @@ config_load (flowly_config_t *config, char *path)
 	cursor = networks.head;
 	i = 0;
 	while (cursor != NULL) {
-		rc = load_network(config->networks + i, (list_item_network_t *) cursor->val);
-		if (rc != 0) {
-			return rc;
-		}
-		
+		strcpy(config->networks[i].name, ((list_item_network_t *) cursor->val)->name);
 		i++;
+		
 		cursor_old = cursor;
 		cursor = cursor->next;
 		free(cursor_old->val);
@@ -394,6 +389,12 @@ config_load (flowly_config_t *config, char *path)
 	}
 	
 	return 0;
+error:
+	if (err != NULL) {
+		err->line = line;
+		err->line_number = line_number;
+	}
+	return rc;
 }
 
 void 
@@ -405,4 +406,37 @@ config_free (flowly_config_t *config)
 		free(config->networks);
 	if (config->routes)
 		free(config->routes);
+}
+
+char *
+config_strerror (config_error_t err)
+{
+	switch (err) {
+	case E_UNKNOWN_CONTEXT:
+		return "Unknown configuration context";
+	case E_INCOMPLETE_VARIABLE:
+		return "Missing value for a variable";
+	case E_UNKNOWN_VARIABLE:
+		return "Trying to set an unknown option";
+	case E_INCOMPLETE_CLIENT:
+		return "Client configuration is not complete";
+	case E_INCOMPLETE_ROUTE:
+		return "Route configuration is not complete";
+	case E_INVALID_ADDRESS:
+		return "Invalid IP address";
+	case E_INVALID_PORT:
+		return "Port number must be between 0 and 65535";
+	case E_SYNTAX_ERROR:
+		return "Syntax error";
+	case E_UNEXPECTED_TOKEN:
+		return "Unexpected token at the end of the line";
+	case E_NETWORK_NAME_LONG:
+		return "Network name is too long";
+	case E_INVALID_FORMAT:
+		return "Invalid output format specified";
+	case E_FILE_NOT_FOUND:
+		return "Configuration file not found";
+	default:
+		return "Unknown error";
+	}
 }

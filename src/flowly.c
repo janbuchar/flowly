@@ -108,9 +108,11 @@ int
 main (int argc, char **argv) 
 {
 	flowly_config_t config;
+	flowly_config_error_t cfg_err;
+	int rc;
 	
-	if (config_load(&config, NULL) == -1) {
-		errx(1, "config_load");
+	if ((rc = config_load(&config, NULL, &cfg_err)) < 0) {
+		errx(1, "config_load: %s on line %zu\n%s", config_strerror(rc), cfg_err.line_number, cfg_err.line);
 	}
 	
 	int sflow_socket = create_socket(&config);

@@ -11,7 +11,7 @@ int main (int argc, char **argv)
 	fct_init();
 	
 	flowly_config_t config;
-	int rc = config_load(&config, "config-basic.conf");
+	int rc = config_load(&config, "config-basic.conf", NULL);
 	
 	char dst[255];
 	assert_int(rc, 0, "config_load() return value");

@@ -37,7 +37,12 @@ typedef struct {
 	char listen_port[6];
 } flowly_config_t;
 
-int config_load (flowly_config_t * config, char * path);
+typedef struct {
+	size_t line_number;
+	char *line;
+} flowly_config_error_t;
+
+int config_load (flowly_config_t * config, char * path, flowly_config_error_t *error);
 
 void config_free (flowly_config_t * config);
 
