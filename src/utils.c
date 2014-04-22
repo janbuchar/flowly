@@ -92,7 +92,7 @@ addr_cidr_ipv4 (struct sockaddr_in *addr, int n)
 	memset(&addr->sin_addr.s_addr, 255, sizeof (addr->sin_addr.s_addr));
 	addr->sin_addr.s_addr >>= (32 - n);
 	
-	return 1;
+	return 0;
 }
 
 int
@@ -117,7 +117,7 @@ addr_cidr_ipv6 (struct sockaddr_in6 *addr, int n)
 		*a <<= (32 - n);
 	}
 	
-	return 1;
+	return 0;
 }
 
 int 
