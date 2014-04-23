@@ -88,10 +88,13 @@ addr_cidr_ipv4 (struct sockaddr_in *addr, int n)
 		return -1;
 	}
 	
-	// Fill the address with ones and shift it to create a zero gap
-	memset(&addr->sin_addr.s_addr, 255, sizeof (addr->sin_addr.s_addr));
-	addr->sin_addr.s_addr >>= (32 - n);
-	
+	if (n > 0) {
+		// Fill the address with ones and shift it to create a zero gap
+		memset(&addr->sin_addr.s_addr, 255, sizeof (addr->sin_addr.s_addr));
+		addr->sin_addr.s_addr >>= (32 - n);
+	} else {
+		memset(&addr->sin_addr.s_addr, 0, sizeof (addr->sin_addr.s_addr));
+	}
 	return 0;
 }
 
