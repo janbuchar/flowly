@@ -40,16 +40,17 @@ def send_list (addr, port, data):
 		for item in data:
 			send_data(sock, sockaddr, item)
 
-def berserk (addr, port):
+def berserk (addr, port, magnitude = 10000):
 	"""
 	Gets medieval on a collector :)
 	
 	Args:
 		addr: a string representation of destination address
 		port: destination port
+		magnitude: how many packets should we send?
 	"""
 	def gen ():
-		for i in range(10000):
+		for i in range(magnitude):
 			yield captures.data[random.randint(0, len(captures.data) - 1)]
 	
 	send_list(addr, port, gen())
