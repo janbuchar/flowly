@@ -121,7 +121,7 @@ parse_variable (flowly_config_t *config, char *line)
 }
 
 int
-parse_addr (struct sockaddr_storage *addr, char *addr_str)
+parse_addr (struct sockaddr_storage *addr, char *addr_str, char *port, socklen_t *len)
 {
 	struct addrinfo *res, hint;
 	memset(&hint, 0, sizeof (hint));
@@ -130,11 +130,15 @@ parse_addr (struct sockaddr_storage *addr, char *addr_str)
 	hint.ai_family = AF_UNSPEC;
 	hint.ai_socktype = SOCK_DGRAM;
 	
-	if (getaddrinfo(addr_str, NULL, &hint, &res) != 0) {
+	if (getaddrinfo(addr_str, port, &hint, &res) != 0) {
 		return E_INVALID_ADDRESS;
 	}
 	
 	memcpy(addr, res->ai_addr, res->ai_addrlen);
+	
+	if (len != NULL) {
+		*len = res->ai_addrlen;
+	}
 	
 	freeaddrinfo(res);
 	
@@ -170,12 +174,10 @@ parse_client (list_t *clients, char *line)
 		return E_INVALID_FORMAT;
 	}
 	
-	int rc = parse_addr(&client->addr, addr);
+	int rc = parse_addr(&client->addr, addr, port, &client->addrlen);
 	if (rc != 0) {
 		return rc;
 	}
-	
-	strcpy(client->port, port);
 	
 	list_add(clients, client);
 	
@@ -209,7 +211,7 @@ parse_route (list_t *routes, char *line)
 	
 	strcpy(route->network, network);
 	
-	rc = parse_addr(&route->addr, addr);
+	rc = parse_addr(&route->addr, addr, NULL, NULL);
 	if (rc != 0) {
 		free(route);
 		return rc;
@@ -219,7 +221,7 @@ parse_route (list_t *routes, char *line)
 		route->mask.ss_family = route->addr.ss_family;
 		rc = addr_cidr(&route->mask, atoi(mask));
 	} else {
-		rc = parse_addr(&route->mask, mask);
+		rc = parse_addr(&route->mask, mask, NULL, NULL);
 	}
 	
 	if (rc != 0) {

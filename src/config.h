@@ -12,7 +12,7 @@ typedef enum {
 
 typedef struct {
 	struct sockaddr_storage addr;
-	char port[6]; // 5 digits of port + \0
+	socklen_t addrlen;
 	output_format_t format;
 } flowly_client_t;
 
