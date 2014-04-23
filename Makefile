@@ -3,7 +3,7 @@ PROG=flowly
 OBJDIR=build
 SRCDIR=src
 CFLAGS=-Wall
-LDFLAGS=-lrt
+LDFLAGS=-lrt -lpthread
 
 FILES=config flowstat list output sflow utils
 OBJS=$(FILES:%=$(OBJDIR)/%.o)

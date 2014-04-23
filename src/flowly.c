@@ -25,6 +25,13 @@ typedef struct {
 	size_t to;
 } sample_network_t;
 
+typedef struct {
+	flowly_config_t config;
+	stat_container_t *stats;
+	size_t stats_count;
+	pthread_mutex_t mutex;
+} context_t;
+
 int
 create_socket (flowly_config_t *config)
 {
@@ -104,22 +111,49 @@ store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow
 	item->packet_count = ntohl(sample->sample_rate);
 }
 
+context_t context;
+
+void *
+output_thread (void *arg)
+{
+	stat_container_t *stats = malloc(context.stats_count * sizeof (stat_container_t));
+	
+	struct timespec wait = {
+		.tv_sec = context.config.send_interval / 1000,
+		.tv_nsec = (context.config.send_interval * 1000000) % 1000000000
+	};
+	struct timespec remaining;
+	
+	for (;;) {
+		pthread_mutex_lock(&context.mutex);
+		memcpy(stats, context.stats, context.stats_count * sizeof (stat_container_t));
+		pthread_mutex_unlock(&context.mutex);
+		
+		output(&context.config, stats);
+		
+		nanosleep(&wait, &remaining);
+	}
+	
+	return arg; // Never reached
+}
+
 int 
 main (int argc, char **argv) 
 {
-	flowly_config_t config;
 	flowly_config_error_t cfg_err;
 	int rc;
 	
-	if ((rc = config_load(&config, NULL, &cfg_err)) < 0) {
+	if ((rc = config_load(&context.config, NULL, &cfg_err)) < 0) {
 		errx(1, "config_load: %s on line %zu\n%s", config_strerror(rc), cfg_err.line_number, cfg_err.line);
 	}
 	
-	int sflow_socket = create_socket(&config);
+	int sflow_socket = create_socket(&context.config);
 	
-	stat_container_t *stats = malloc(2 * config.network_count * sizeof(stat_container_t)); // a container for each network and direction
+	context.stats_count = 2 * context.config.network_count; // a container for each network and direction
+	context.stats = malloc(context.stats_count * sizeof(stat_container_t));
+	
 	stat_container_t *stat_it;
-	for (stat_it = stats; stat_it - stats < 2 * config.network_count; ++stat_it) {
+	for (stat_it = context.stats; stat_it - context.stats < 2 * context.config.network_count; ++stat_it) {
 		stat_container_init(stat_it);
 	}
 	
@@ -129,10 +163,16 @@ main (int argc, char **argv)
 	sflow_sample_data_t *sample;
 	sflow_flow_record_t *record;
 	
+	pthread_t outputter;
+	pthread_mutex_init(&context.mutex, NULL);
+	pthread_create(&outputter, NULL, output_thread, &context);
+	
 	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
 		if (n == MAX_SFLOW_PACKET_SIZE) {
 			continue; // Now that's a big packet... How about a message?
 		}
+		
+		pthread_mutex_lock(&context.mutex);
 		
 		sample = NULL;
 		while (next_sample(packet, n, &sample) > 0) {
@@ -146,18 +186,18 @@ main (int argc, char **argv)
 					continue;
 				}
 				
-				find_network(&config, record, &net);
+				find_network(&context.config, record, &net);
 				
 				if (net.from_found) {
-					store_stats(stats, net.from, OUT, get_flow_sample(sample), get_raw_header(record));
+					store_stats(context.stats, net.from, OUT, get_flow_sample(sample), get_raw_header(record));
 				}
 				if (net.to_found) {
-					store_stats(stats, net.to, IN, get_flow_sample(sample), get_raw_header(record));
+					store_stats(context.stats, net.to, IN, get_flow_sample(sample), get_raw_header(record));
 				}
 			}
 		}
 		
-		output(&config, stats);
+		pthread_mutex_unlock(&context.mutex);
 	}
 	
 	return 0;
