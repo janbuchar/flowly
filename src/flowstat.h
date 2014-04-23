@@ -6,7 +6,7 @@
 
 #include "common.h"
 
-typedef u_int32_t stat_number_t;
+typedef u_int64_t stat_number_t;
 
 typedef struct {
 	stat_number_t packet_count;
