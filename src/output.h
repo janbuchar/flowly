@@ -12,8 +12,9 @@
 #define DIRECTION_OUT 'O'
 
 typedef struct {
-	stat_number_t item_count;
-	struct timespec time;
+	u_int32_t item_count;
+	u_int32_t time;
+	u_int32_t nanotime;
 } output_header_t;
 
 typedef struct {
