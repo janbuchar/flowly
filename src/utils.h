@@ -1,6 +1,7 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
+#include <sys/types.h>
 #include <sys/socket.h>
 
 void
@@ -11,4 +12,8 @@ addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, str
 
 int
 addr_cidr (struct sockaddr_storage *addr, int n);
+
+u_int64_t
+htonll (u_int64_t val);
+
 #endif

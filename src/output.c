@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #include "common.h"
+#include "utils.h"
 #include "output.h"
 #include "flowstat.h"
 
@@ -52,13 +53,13 @@ output (flowly_config_t *config, stat_container_t *stats)
 			items->direction = dir == 0 ? DIRECTION_IN : DIRECTION_OUT;
 			strcpy(items->network, config->networks[i].name);
 			strcpy(items->name, "packet_count");
-			items->value = stat_container_reduce(stats, key_packet_count, sum);
+			items->value = htonll(stat_container_reduce(stats, key_packet_count, sum));
 			items++;
 			
 			items->direction = dir == 0 ? DIRECTION_IN : DIRECTION_OUT;
 			strcpy(items->network, config->networks[i].name);
 			strcpy(items->name, "byte_count");
-			items->value = stat_container_reduce(stats, key_byte_count, sum); // TODO network byte order
+			items->value = htonll(stat_container_reduce(stats, key_byte_count, sum));
 			items++;
 			
 			stats++;

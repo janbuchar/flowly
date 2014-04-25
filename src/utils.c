@@ -135,3 +135,20 @@ addr_cidr (struct sockaddr_storage *addr, int n)
 		return -1;
 	}
 }
+
+u_int64_t
+htonll (u_int64_t val)
+{
+	if (htonl(1) == 1) {
+		return val;
+	}
+	
+	u_int32_t a = *((u_int32_t *) &val);
+	u_int32_t b = *(((u_int32_t *) &val) + 1);
+	
+	val = htonl(a);
+	val = val << 32 | htonl(b);
+	
+	return val;
+}
+
