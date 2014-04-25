@@ -286,7 +286,7 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 	while (fgets(line, LINE_SIZE, config_file) != NULL) {
 		line_number++;
 		
-		if ((rc = check_context(line, &context)) || *line == COMMENT_DELIMITER) {
+		if ((rc = check_context(line, &context)) == 1 || *line == COMMENT_DELIMITER) {
 			continue;
 		}
 		
