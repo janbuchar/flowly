@@ -32,7 +32,7 @@ output_socket ()
 }
 
 void
-output (flowly_config_t *config, stat_container_t *stats)
+output (flowly_config_t *config, stat_container_t *stats, struct timespec *threshold)
 {
 	size_t i;
 	size_t dir;
@@ -53,13 +53,13 @@ output (flowly_config_t *config, stat_container_t *stats)
 			items->direction = dir == 0 ? DIRECTION_IN : DIRECTION_OUT;
 			strcpy(items->network, config->networks[i].name);
 			strcpy(items->name, "packet_count");
-			items->value = htonll(stat_container_reduce(stats, key_packet_count, sum));
+			items->value = htonll(stat_container_reduce(stats, key_packet_count, sum, threshold));
 			items++;
 			
 			items->direction = dir == 0 ? DIRECTION_IN : DIRECTION_OUT;
 			strcpy(items->network, config->networks[i].name);
 			strcpy(items->name, "byte_count");
-			items->value = htonll(stat_container_reduce(stats, key_byte_count, sum));
+			items->value = htonll(stat_container_reduce(stats, key_byte_count, sum, threshold));
 			items++;
 			
 			stats++;

@@ -25,6 +25,6 @@ typedef struct {
 } output_item_t;
 
 void
-output (flowly_config_t *config, stat_container_t *stats);
+output (flowly_config_t *config, stat_container_t *stats, struct timespec *threshold);
 
 #endif

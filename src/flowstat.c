@@ -24,18 +24,38 @@ stat_container_next (stat_container_t * q)
 	return &(q->items[q->next++]);
 }
 
-stat_number_t
-stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc)
+/**
+ * @return a > b
+ */
+int
+timespec_gt (struct timespec *a, struct timespec *b)
 {
-	if (q->full == 0) {
+	return a->tv_sec > b->tv_sec || (a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec);
+}
+
+stat_number_t
+stat_container_reduce (stat_container_t * s, key_fnc_t key, reduce_fnc_t fnc, struct timespec *threshold)
+{
+	size_t i = 0;
+	stat_number_t result;
+	
+	// Try to find the value to start with
+	for (i = 0; i < s->full; ++i) {
+		if (timespec_gt(&s->items[i].time, threshold)) {
+			result = key(&(s->items[i]));
+			break;
+		}
+	}
+	
+	// If there's nothing to start with, return 0
+	if (i == s->full) {
 		return 0;
 	}
 	
-	size_t i = 0;
-	stat_number_t result = key(&(q->items[0]));
-	
-	for (i = 1; i < q->full; ++i) {
-		result = fnc(result, key(&(q->items[i])));
+	for (; i < s->full; ++i) {
+		if (timespec_gt(&s->items[i].time, threshold)) {
+			result = fnc(result, key(&(s->items[i])));
+		}
 	}
 	
 	return result;

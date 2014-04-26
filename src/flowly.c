@@ -122,6 +122,10 @@ output_thread (void *arg)
 		.tv_sec = context.config.send_interval / 1000,
 		.tv_nsec = (context.config.send_interval * 1000000) % 1000000000
 	};
+	struct timespec last = {
+		.tv_sec = 0,
+		.tv_nsec = 0
+	};
 	struct timespec remaining;
 	
 	for (;;) {
@@ -129,7 +133,8 @@ output_thread (void *arg)
 		memcpy(stats, context.stats, context.stats_count * sizeof (stat_container_t));
 		pthread_mutex_unlock(&context.mutex);
 		
-		output(&context.config, stats);
+		output(&context.config, stats, &last);
+		clock_gettime(CLOCK_REALTIME, &last);
 		
 		nanosleep(&wait, &remaining);
 	}

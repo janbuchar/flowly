@@ -32,7 +32,7 @@ flowstat_t *
 stat_container_next (stat_container_t * q);
 
 stat_number_t
-stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc);
+stat_container_reduce (stat_container_t * q, key_fnc_t key, reduce_fnc_t fnc, struct timespec *threshold);
 
 void
 stat_container_interval (stat_container_t *s, struct timespec *res);
