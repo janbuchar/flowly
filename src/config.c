@@ -52,6 +52,7 @@ check_context (char *line, config_context_t *context)
 {
 	if (line[0] == '[') {
 		size_t pos = 1;
+		char *sp;
 		
 		while (line[pos] != ']') {
 			if (line[pos] == 0) {
@@ -60,7 +61,7 @@ check_context (char *line, config_context_t *context)
 			++pos;
 		}
 		
-		char *new_context = strtok(line, "[]");
+		char *new_context = strtok_r(line, "[]", &sp);
 		
 		if (strcmp(new_context, "variables") == 0) {
 			*context = VARIABLES;
@@ -92,11 +93,12 @@ str_is_numeric (char *s)
 }
 
 int
-parse_variable (flowly_config_t *config, char *line)
+parse_variable (flowly_config_t *config, char *line, char **sp)
 {
 	static char *delimiter = "\t =\n\r";
-	char *name = strtok(line, delimiter);
-	char *value = strtok(NULL, delimiter);
+	
+	char *name = strtok_r(line, delimiter, sp);
+	char *value = strtok_r(NULL, delimiter, sp);
 	
 	if (name == NULL) {
 		return 0; // empty line
@@ -146,13 +148,13 @@ parse_addr (struct sockaddr_storage *addr, char *addr_str, char *port, socklen_t
 }
 
 int
-parse_client (list_t *clients, char *line)
+parse_client (list_t *clients, char *line, char **sp)
 {
 	static char *delimiter = "\t \n\r";
 	
-	char *addr = strtok(line, delimiter);
-	char *port = strtok(NULL, delimiter);
-	char *format = strtok(NULL, delimiter);
+	char *addr = strtok_r(line, delimiter, sp);
+	char *port = strtok_r(NULL, delimiter, sp);
+	char *format = strtok_r(NULL, delimiter, sp);
 	
 	if (addr == NULL) {
 		return 0; // empty line
@@ -185,14 +187,14 @@ parse_client (list_t *clients, char *line)
 }
 
 int
-parse_route (list_t *routes, char *line)
+parse_route (list_t *routes, char *line, char **sp)
 {
 	static char *delimiter = "\t \n\r";
 	int rc;
 	
-	char *addr = strtok(line, "/\t \n\r");
-	char *mask = strtok(NULL, delimiter);
-	char *network = strtok(NULL, delimiter);
+	char *addr = strtok_r(line, "/\t \n\r", sp);
+	char *mask = strtok_r(NULL, delimiter, sp);
+	char *network = strtok_r(NULL, delimiter, sp);
 	
 	if (addr == NULL) {
 		return 0; // empty line
@@ -272,6 +274,7 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 	}
 	
 	char line[LINE_SIZE];
+	char *sp;
 	size_t line_number = 0;
 	config_context_t context = VARIABLES;
 	
@@ -296,17 +299,17 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 		
 		switch (context) {
 		case VARIABLES:
-			rc = parse_variable(config, line);
+			rc = parse_variable(config, line, &sp);
 			break;
 		case NETWORKS:
-			rc = parse_route(&routes, line);
+			rc = parse_route(&routes, line, &sp);
 			break;
 		case CLIENTS:
-			rc = parse_client(&clients, line);
+			rc = parse_client(&clients, line, &sp);
 			break;
 		}
 		
-		char *token = strtok(NULL, "\t \n\r");
+		char *token = strtok_r(NULL, "\t \n\r", &sp);
 		
 		if (token != NULL && token[0] != COMMENT_DELIMITER) {
 			rc = E_UNEXPECTED_TOKEN;
