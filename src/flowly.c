@@ -25,13 +25,6 @@ typedef struct {
 	size_t to;
 } sample_network_t;
 
-typedef struct {
-	flowly_config_t config;
-	stat_container_t *stats;
-	size_t stats_count;
-	pthread_mutex_t mutex;
-} context_t;
-
 int
 create_socket (flowly_config_t *config)
 {
@@ -111,7 +104,12 @@ store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow
 	item->packet_count = ntohl(sample->sample_rate);
 }
 
-context_t context;
+struct {
+	flowly_config_t config;
+	stat_container_t *stats;
+	size_t stats_count;
+	pthread_mutex_t mutex;
+} context;
 
 void *
 output_thread (void *arg)
