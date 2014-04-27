@@ -10,6 +10,8 @@
 #include "output.h"
 #include "flowstat.h"
 
+#define FLOWLY_PROTO_VERSION 1
+
 int
 output_socket ()
 {
@@ -35,35 +37,49 @@ void
 output (flowly_config_t *config, stat_container_t *stats, struct timespec *threshold)
 {
 	size_t i;
-	size_t dir;
 	
 	int sock = output_socket();
-	size_t item_count = 4 * config->network_count;
-	size_t data_size = sizeof (output_header_t) + item_count * sizeof (output_item_t);
+	size_t stat_count = 2;
+	size_t data_size = // Header
+		sizeof (output_header_t) 
+		// The names of the stats
+		+ stat_count * sizeof (output_stat_header_t)
+		// A header and stat values for each network
+		+ config->network_count * (sizeof (output_network_header_t) + stat_count * sizeof (output_item_t));
 	
 	output_header_t *header = malloc(data_size);
-	output_item_t *items = (output_item_t *) (header + 1);
 	
-	header->item_count = htonl(item_count);
+	header->version = FLOWLY_PROTO_VERSION;
 	header->time = htonl(time(NULL));
 	header->nanotime = htonl(0);
+	header->network_count = htonl(config->network_count);
+	header->stat_count = htonl(stat_count);
+	
+	output_stat_header_t *stat_header = (output_stat_header_t *) (header + 1);
+	
+	strcpy(stat_header->name, "packet_count");
+	stat_header++;
+	strcpy(stat_header->name, "byte_count");
+	stat_header++;
+	
+	output_network_header_t *network_header = (output_network_header_t *) stat_header;
+	output_item_t *item;
 	
 	for (i = 0; i < config->network_count; i++) {
-		for (dir = 0; dir <= 1; dir++) {
-			items->direction = dir == 0 ? DIRECTION_IN : DIRECTION_OUT;
-			strcpy(items->network, config->networks[i].name);
-			strcpy(items->name, "packet_count");
-			items->value = htonll(stat_container_reduce(stats, key_packet_count, sum, threshold));
-			items++;
-			
-			items->direction = dir == 0 ? DIRECTION_IN : DIRECTION_OUT;
-			strcpy(items->network, config->networks[i].name);
-			strcpy(items->name, "byte_count");
-			items->value = htonll(stat_container_reduce(stats, key_byte_count, sum, threshold));
-			items++;
-			
-			stats++;
-		}
+		strcpy(network_header->network, config->networks[i].name);
+		
+		item = (output_item_t *) (network_header + 1);
+		item->value_in = htonll(stat_container_reduce(&stats[0], key_packet_count, sum, threshold));
+		item->value_out = htonll(stat_container_reduce(&stats[1], key_packet_count, sum, threshold));
+		++item;
+		
+		item->value_in = htonll(stat_container_reduce(&stats[0], key_byte_count, sum, threshold));
+		item->value_out = htonll(stat_container_reduce(&stats[1], key_byte_count, sum, threshold));
+		++item;
+		
+		stats += 2; // in and out
+		
+		network_header = (output_network_header_t *) item;
 	}
 	
 	flowly_client_t *client;

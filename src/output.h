@@ -8,20 +8,25 @@
 #include "config.h"
 #include "flowstat.h"
 
-#define DIRECTION_IN 'I'
-#define DIRECTION_OUT 'O'
-
 typedef struct {
-	u_int32_t item_count;
+	u_int32_t version;
 	u_int32_t time;
 	u_int32_t nanotime;
+	u_int32_t network_count;
+	u_int32_t stat_count;
 } output_header_t;
 
 typedef struct {
-	char direction;
-	char network[NET_NAME_LENGTH];
 	char name[STAT_NAME_LENGTH];
-	stat_number_t value;
+} output_stat_header_t;
+
+typedef struct {
+	char network[NET_NAME_LENGTH];
+} output_network_header_t;
+
+typedef struct {
+	stat_number_t value_in;
+	stat_number_t value_out;
 } output_item_t;
 
 void
