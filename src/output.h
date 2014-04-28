@@ -22,6 +22,10 @@ typedef struct {
 
 typedef struct {
 	char network[NET_NAME_LENGTH];
+	u_int32_t time_in;
+	u_int32_t nanotime_in;
+	u_int32_t time_out;
+	u_int32_t nanotime_out;
 } output_network_header_t;
 
 typedef struct {
