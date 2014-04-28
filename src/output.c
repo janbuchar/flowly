@@ -49,7 +49,7 @@ output (flowly_config_t *config, stat_container_t *stats, struct timespec *thres
 	
 	output_header_t *header = malloc(data_size);
 	
-	header->version = FLOWLY_PROTO_VERSION;
+	header->version = htonl(FLOWLY_PROTO_VERSION);
 	header->time = htonl(time(NULL));
 	header->nanotime = htonl(0);
 	header->network_count = htonl(config->network_count);
