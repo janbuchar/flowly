@@ -29,12 +29,12 @@ class flowly_header (flowly_struct):
 class flowly_stat_header (flowly_struct):
 	fmt = "!64s"
 	def __init__ (self, data):
-		self.name = data[0]
+		self.name = c_str(data[0])
 
 class flowly_network_header (flowly_struct):
 	fmt = "!64s"
-	def __init (self, data):
-		self.name = data[0]
+	def __init__ (self, data):
+		self.name = c_str(data[0])
 
 class flowly_item (flowly_struct):
 	fmt = "!QQ"
@@ -57,20 +57,24 @@ with socket.socket(family, socket.SOCK_DGRAM) as sock:
 		end = flowly_header.size()
 		header = flowly_header(struct.unpack(flowly_header.fmt, data[:end]))
 		
-		if (header.version != 0): # TODO upgrade to 1
+		if (header.version != 1):
 			print("Unsupported flowly protocol version")
 			sys.exit(1)
 		
-		stats = map(flowly_stat_header, struct.iter_unpack(flowly_stat_header.fmt, data[end : end + header.stat_count * flowly_stat_header.size()]))
+		stats = list(map(flowly_stat_header, struct.iter_unpack(flowly_stat_header.fmt, data[end : end + header.stat_count * flowly_stat_header.size()])))
+		
 		end += header.stat_count * flowly_stat_header.size()
 		
-		def items ():
-			for i in range(header.network_count):
-				yield i
+		print("Received data from {0.network_count} networks (time {0.time}):".format(header))
 		
-		print("Received {0.network_count} items (time {0.time}):".format(header))
-		
-		for item in items:
-			print("{0.direction} {0.network}\n\t {0.name} = {0.value}".format(item))
+		for i in range(header.network_count):
+			network = flowly_network_header(struct.unpack(flowly_network_header.fmt, data[end : end + flowly_network_header.size()]))
+			end += flowly_network_header.size()
+			items = map(flowly_item, struct.iter_unpack(flowly_item.fmt, data[end : end + header.stat_count * flowly_item.size()]))
+			end += header.stat_count * flowly_item.size()
+			
+			print("{0.name}".format(network))
+			for stat, item in zip(stats, items):
+				print("\t{0.name}: {1.value_in} in, {1.value_out} out".format(stat, item))
 		
 		print()
