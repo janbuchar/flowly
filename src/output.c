@@ -75,14 +75,14 @@ output (flowly_config_t *config, stat_container_t *stats, struct timespec *thres
 		stat_container_interval(out, &interval_out);
 		
 		strcpy(network_header->network, config->networks[i].name);
-		if (interval_in.tv_sec * 1000 + interval_in.tv_nsec / 1000000 <= config->send_interval) {
+		if (interval_in.tv_sec * 1000 + interval_in.tv_nsec / 1000000 <= config->send_interval && (interval_in.tv_sec != 0 || interval_in.tv_nsec != 0)) {
 			network_header->time_in = htonl(interval_in.tv_sec);
 			network_header->nanotime_in = htonl(interval_in.tv_nsec);
 		} else {
 			network_header->time_in = htonl(config->send_interval / 1000);
 			network_header->nanotime_in = htonl((config->send_interval % 1000) * 1000000);
 		}
-		if (interval_out.tv_sec * 1000 + interval_out.tv_nsec / 1000000 <= config->send_interval) {
+		if (interval_out.tv_sec * 1000 + interval_out.tv_nsec / 1000000 <= config->send_interval && (interval_out.tv_sec != 0 || interval_out.tv_nsec != 0)) {
 			network_header->time_out = htonl(interval_out.tv_sec);
 			network_header->nanotime_out = htonl(interval_out.tv_nsec);
 		} else {
