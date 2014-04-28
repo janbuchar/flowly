@@ -32,9 +32,13 @@ class flowly_stat_header (flowly_struct):
 		self.name = c_str(data[0])
 
 class flowly_network_header (flowly_struct):
-	fmt = "!64s"
+	fmt = "!64sllll"
 	def __init__ (self, data):
 		self.name = c_str(data[0])
+		self.time_in = data[1]
+		self.nanotime_in = data[2]
+		self.time_out = data[3]
+		self.nanotime_out = data[4]
 
 class flowly_item (flowly_struct):
 	fmt = "!QQ"
@@ -57,7 +61,7 @@ with socket.socket(family, socket.SOCK_DGRAM) as sock:
 		end = flowly_header.size()
 		header = flowly_header(struct.unpack(flowly_header.fmt, data[:end]))
 		
-		if (header.version != 1):
+		if (header.version != 2):
 			print("Unsupported flowly protocol version")
 			sys.exit(1)
 		
@@ -75,6 +79,8 @@ with socket.socket(family, socket.SOCK_DGRAM) as sock:
 			
 			print("{0.name}".format(network))
 			for stat, item in zip(stats, items):
-				print("\t{0.name}: {1.value_in} in, {1.value_out} out".format(stat, item))
+				in_per_sec = (item.value_in // (network.time_in + network.nanotime_in / 1000000))
+				out_per_sec = (item.value_out // (network.time_out + network.nanotime_out / 1000000))
+				print("\t{0.name}: {1.value_in} in ({2}/s), {1.value_out} out ({3}/s)".format(stat, item, in_per_sec, out_per_sec))
 		
 		print()
