@@ -34,6 +34,11 @@ int main (int argc, char **argv)
 	assert_ip("0.0.0.0", &ss_mask, "IPv4 wildcard subnet mask");
 	assert_int(1, addr_match(&ss_addr, &ss_net, &ss_mask), "IPv4 wildcard subnet matching");
 	
+	addr_cidr(&ss_mask, 1);
+	inet_pton(AF_INET, "255.255.255.255", &((struct sockaddr_in *) &ss_addr)->sin_addr);
+	addr_mask(&ss_addr, &ss_mask);
+	assert_ip("128.0.0.0", &ss_addr, "CIDR mask /1");
+	
 	ss_addr.ss_family = AF_INET6;
 	inet_pton(AF_INET6, "2001:db8::1428:57ab", &((struct sockaddr_in6 *) &ss_addr)->sin6_addr);
 	
