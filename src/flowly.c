@@ -145,8 +145,18 @@ load_context ()
 	flowly_config_error_t cfg_err;
 	int rc;
 	
+	config_free(&context.config);
+	
+	if (context.stats != NULL) {
+		free(context.stats);
+	}
+	
+	if (context.stats_copy != NULL) {
+		free(context.stats_copy);
+	}
+	
 	if ((rc = config_load(&context.config, NULL, &cfg_err)) < 0) {
-		errx(1, "config_load_context: %s on line %zu\n%s", config_strerror(rc), cfg_err.line_number, cfg_err.line);
+		errx(1, "config_load: %s on line %zu\n%s", config_strerror(rc), cfg_err.line_number, cfg_err.line);
 	}
 	
 	context.stats_count = 2 * context.config.network_count; // a container for each network and direction
@@ -159,6 +169,25 @@ load_context ()
 	}
 }
 
+void *
+sig_thread (void *arg)
+{
+	sigset_t *sigset = (sigset_t *) arg;
+	int sig_number;
+	
+	for (;;) {
+		sigwait(sigset, &sig_number);
+		
+		switch (sig_number) {
+		case SIGHUP:
+			pthread_mutex_lock(&context.mutex);
+			load_context();
+			pthread_mutex_unlock(&context.mutex);
+			break;
+		}
+	}
+}
+
 int 
 main (int argc, char **argv) 
 {
@@ -167,17 +196,21 @@ main (int argc, char **argv)
 	sample_network_t net;
 	sflow_sample_data_t *sample;
 	sflow_flow_record_t *record;
+	
 	load_context();
 	
-	pthread_t outputter;
-	pthread_mutex_init(&context.mutex, NULL);
-	pthread_create(&outputter, NULL, output_thread, &context);
-	
-	sigset_t sig, pending;
+	sigset_t sig;
 	sigemptyset(&sig);
 	sigaddset(&sig, SIGHUP);
 	
-	sigprocmask(SIG_BLOCK, &sig, NULL);
+	if (pthread_sigmask(SIG_BLOCK, &sig, NULL) != 0) {
+		errx(1, "sigmask");
+	}
+	
+	pthread_t outputter, sighandler;
+	pthread_mutex_init(&context.mutex, NULL);
+	pthread_create(&sighandler, NULL, sig_thread, &sig);
+	pthread_create(&outputter, NULL, output_thread, &context);
 	
 	int sflow_socket = create_socket(&context.config);
 	
@@ -187,11 +220,6 @@ main (int argc, char **argv)
 		}
 		
 		pthread_mutex_lock(&context.mutex);
-		
-		sigpending(&pending);
-		if (sigismember(&pending, SIGHUP)) {
-			load_context();
-		}
 		
 		sample = NULL;
 		while (next_sample(packet, n, &sample) > 0) {
