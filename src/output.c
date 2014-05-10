@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "common.h"
 #include "utils.h"
@@ -21,7 +22,7 @@ output_socket ()
 	int sock;
 	
 	memset(&hint, 0, sizeof (hint));
-	hint.ai_family = AF_INET; // TODO version agnostic
+	hint.ai_family = AF_INET6; // Is this portable?
 	hint.ai_socktype = SOCK_DGRAM;
 	
 	if ((error = getaddrinfo("localhost", NULL, &hint, &r)) != 0) {
@@ -115,4 +116,5 @@ output (flowly_config_t *config, stat_container_t *stats, struct timespec *thres
 	}
 	
 	free(header);
+	close(sock);
 }
