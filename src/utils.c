@@ -151,4 +151,3 @@ htonll (u_int64_t val)
 	
 	return val;
 }
-
