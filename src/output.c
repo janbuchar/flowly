@@ -4,6 +4,7 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <time.h>
 
 #include "common.h"
 #include "utils.h"
@@ -49,9 +50,12 @@ output (flowly_config_t *config, stat_container_t *stats, struct timespec *thres
 	
 	output_header_t *header = malloc(data_size);
 	
+	struct timespec now;
+	clock_gettime(CLOCK_REALTIME, &now);
+	
 	header->version = htonl(FLOWLY_PROTO_VERSION);
-	header->time = htonl(time(NULL));
-	header->nanotime = htonl(0);
+	header->time = htonl(now.tv_sec);
+	header->nanotime = htonl(now.tv_nsec);
 	header->network_count = htonl(config->network_count);
 	header->stat_count = htonl(stat_count);
 	
