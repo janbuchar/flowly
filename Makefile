@@ -2,7 +2,7 @@ CC=gcc
 PROG=flowly
 OBJDIR=build
 SRCDIR=src
-CFLAGS=-std=gnu90 -Wall
+CFLAGS=-std=gnu89 -Wall
 LDFLAGS=-lrt -lpthread
 
 FILES=config flowstat list output sflow utils

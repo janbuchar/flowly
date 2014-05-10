@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 #define IPV4_SIZE 4
 #define IPV6_SIZE 16

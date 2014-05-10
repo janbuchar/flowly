@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 void
 addr_mask (struct sockaddr_storage *addr, struct sockaddr_storage *mask);
