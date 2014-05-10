@@ -91,12 +91,12 @@ output (flowly_config_t *config, stat_container_t *stats, struct timespec *thres
 		}
 		
 		item = (output_item_t *) (network_header + 1);
-		item->value_in = htonll(stat_container_reduce(in, key_packet_count, sum, threshold));
-		item->value_out = htonll(stat_container_reduce(out, key_packet_count, sum, threshold));
+		item->value_in = htonll_(stat_container_reduce(in, key_packet_count, sum, threshold));
+		item->value_out = htonll_(stat_container_reduce(out, key_packet_count, sum, threshold));
 		++item;
 		
-		item->value_in = htonll(stat_container_reduce(in, key_byte_count, sum, threshold));
-		item->value_out = htonll(stat_container_reduce(out, key_byte_count, sum, threshold));
+		item->value_in = htonll_(stat_container_reduce(in, key_byte_count, sum, threshold));
+		item->value_out = htonll_(stat_container_reduce(out, key_byte_count, sum, threshold));
 		++item;
 		
 		stats += 2; // in and out

@@ -137,7 +137,7 @@ addr_cidr (struct sockaddr_storage *addr, int n)
 }
 
 u_int64_t
-htonll (u_int64_t val)
+htonll_ (u_int64_t val)
 {
 	if (htonl(1) == 1) {
 		return val;
