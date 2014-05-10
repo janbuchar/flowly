@@ -250,10 +250,6 @@ load_route (flowly_route_t *target, list_item_route_t *route)
 int 
 config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 {
-	if (path == NULL) {
-		path = "flowly.conf";
-	}
-	
 	// Defaults
 	strcpy(config->listen_port, "6343");
 	config->send_interval = 1000;

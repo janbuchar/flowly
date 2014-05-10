@@ -155,7 +155,7 @@ load_context ()
 		free(context.stats_copy);
 	}
 	
-	if ((rc = config_load(&context.config, NULL, &cfg_err)) < 0) {
+	if ((rc = config_load(&context.config, "flowly.conf", &cfg_err)) < 0) {
 		errx(1, "config_load: %s on line %zu\n%s", config_strerror(rc), cfg_err.line_number, cfg_err.line);
 	}
 	
