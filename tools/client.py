@@ -63,7 +63,7 @@ if __name__ == "__main__":
 		print("usage: client.py [address] [port]")
 		sys.exit(1)
 	
-	if (sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 4)):
+	if (sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 3)):
 		print("unsupported Python version")
 		sys.exit(1)
 	
