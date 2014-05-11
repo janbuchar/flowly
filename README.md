@@ -54,13 +54,13 @@ Basic information about the output.
 - Network count (4B) - the number of networks about which flowly records data
 - Stat count (4B) - the number of statistic information items flowly records about every network
 
-The header is followed by <Stat count> statistics headers
+The header is followed by "Stat count" statistics headers
 
 Statistics header
 ------
 - Name (64B) - the name of the statistics item (0-terminated string)
 
-The statistics headers are followed by <Network count> network information items
+The statistics headers are followed by "Network count" network information items
 
 Network header
 ------
@@ -68,7 +68,7 @@ Network header
 - "In" time interval (8B) - the time in which the data (going into the network) was gathered
 - "Out" time interval (8B) - the time in which the data (going out of the network) was gathered
 
-The network header is followed by <Stat count> statistics items
+The network header is followed by "Stat count" statistics items
 
 Statistics item
 ------
