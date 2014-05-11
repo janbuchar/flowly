@@ -74,8 +74,8 @@ if __name__ == "__main__":
 		sock.bind(addr)
 		
 		while True:
-			data, remote_addr = sock.recvfrom(65536)
-			data = iter(data)
+			dgram, remote_addr = sock.recvfrom(65536)
+			data = iter(dgram)
 			header = flowly_header.load(data)
 			
 			if (header.version != 2):
@@ -83,11 +83,11 @@ if __name__ == "__main__":
 				sys.exit(1)
 			
 			stats = list(flowly_stat_header.iter_load(data, header.stat_count))
+			networks = flowly_network_header.iter_load(data, header.network_count)
 			
 			print("Received data from {0.network_count} networks (time {0.time}):".format(header))
 			
-			for i in range(header.network_count):
-				network = flowly_network_header.load(data)
+			for network in networks:
 				items = flowly_item.iter_load(data, header.stat_count)
 				
 				print("{0.name}".format(network))
