@@ -3,6 +3,7 @@
 import sys
 import socket
 import struct
+from itertools import islice
 
 def get_addr (addr, port):
 	family, type, proto, canonname, sockaddr = socket.getaddrinfo(addr, port, family = socket.AF_UNSPEC)[0]
@@ -18,6 +19,15 @@ class flowly_struct:
 	@classmethod
 	def size (cls):
 		return struct.calcsize(cls.fmt)
+	
+	@classmethod
+	def load (cls, data):
+		return cls(struct.unpack(cls.fmt, bytes(islice(data, cls.size()))))
+	
+	@classmethod
+	def iter_load (cls, data, count):
+		for i in range(count):
+			yield cls.load(data)
 
 class flowly_header (flowly_struct):
 	fmt = "!lllll"
@@ -65,24 +75,20 @@ if __name__ == "__main__":
 		
 		while True:
 			data, remote_addr = sock.recvfrom(65536)
-			end = flowly_header.size()
-			header = flowly_header(struct.unpack(flowly_header.fmt, data[:end]))
+			data = iter(data)
+			header = flowly_header.load(data)
 			
 			if (header.version != 2):
 				print("Unsupported flowly protocol version")
 				sys.exit(1)
 			
-			stats = list(map(flowly_stat_header, struct.iter_unpack(flowly_stat_header.fmt, data[end : end + header.stat_count * flowly_stat_header.size()])))
-			
-			end += header.stat_count * flowly_stat_header.size()
+			stats = list(flowly_stat_header.iter_load(data, header.stat_count))
 			
 			print("Received data from {0.network_count} networks (time {0.time}):".format(header))
 			
 			for i in range(header.network_count):
-				network = flowly_network_header(struct.unpack(flowly_network_header.fmt, data[end : end + flowly_network_header.size()]))
-				end += flowly_network_header.size()
-				items = map(flowly_item, struct.iter_unpack(flowly_item.fmt, data[end : end + header.stat_count * flowly_item.size()]))
-				end += header.stat_count * flowly_item.size()
+				network = flowly_network_header.load(data)
+				items = flowly_item.iter_load(data, header.stat_count)
 				
 				print("{0.name}".format(network))
 				for stat, item in zip(stats, items):
