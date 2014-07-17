@@ -110,6 +110,8 @@ struct {
 	stat_container_t *stats_copy;
 	size_t stats_count;
 	pthread_mutex_t mutex;
+	pthread_t receiver;
+	int input_socket;
 } context;
 
 void *
@@ -160,8 +162,8 @@ load_context ()
 	}
 	
 	context.stats_count = 2 * context.config.network_count; // a container for each network and direction
-	context.stats = malloc(context.stats_count * sizeof(stat_container_t));
-	context.stats_copy = malloc(context.stats_count * sizeof(stat_container_t));
+	context.stats = malloc(context.stats_count * sizeof (stat_container_t));
+	context.stats_copy = malloc(context.stats_count * sizeof (stat_container_t));
 	
 	if (context.stats == NULL || context.stats_copy == NULL) {
 		err(1, "Could not allocate memory");
@@ -188,42 +190,30 @@ sig_thread (void *arg)
 			load_context();
 			pthread_mutex_unlock(&context.mutex);
 			break;
+		case SIGINT:
+		case SIGTERM:
+			pthread_cancel(context.receiver);
+			break;
 		}
 	}
+	
+	return arg; // Never reached
 }
 
-int 
-main (int argc, char **argv) 
+void *
+receiver_thread (void *packet)
 {
-	int n;
-	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
-	
-	if (packet == NULL) {
-		err(1, "Could not allocate memory");
-	}
-	
 	sample_network_t net;
 	sflow_sample_data_t *sample;
 	sflow_flow_record_t *record;
 	
-	load_context();
-	
-	sigset_t sig;
-	sigemptyset(&sig);
-	sigaddset(&sig, SIGHUP);
-	
-	if (pthread_sigmask(SIG_BLOCK, &sig, NULL) != 0) {
-		errx(1, "sigmask");
-	}
-	
-	pthread_t outputter, sighandler;
-	pthread_mutex_init(&context.mutex, NULL);
-	pthread_create(&sighandler, NULL, sig_thread, &sig);
-	pthread_create(&outputter, NULL, output_thread, &context);
-	
-	int sflow_socket = create_socket(&context.config);
-	
-	while ((n = recvfrom(sflow_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0)) > 0) {
+	for (;;) {
+		int n = recvfrom(context.input_socket, packet, MAX_SFLOW_PACKET_SIZE, 0, NULL, 0);
+		
+		if (n <= 0) {
+			break;
+		}
+		
 		if (n == MAX_SFLOW_PACKET_SIZE) {
 			continue; // Now that's a big packet... How about a message?
 		}
@@ -255,6 +245,40 @@ main (int argc, char **argv)
 		
 		pthread_mutex_unlock(&context.mutex);
 	}
+	
+	return packet;
+}
+
+int 
+main (int argc, char **argv) 
+{
+	load_context();
+	
+	sigset_t sig;
+	sigemptyset(&sig);
+	sigaddset(&sig, SIGHUP);
+	sigaddset(&sig, SIGINT);
+	sigaddset(&sig, SIGTERM);
+	
+	if (pthread_sigmask(SIG_BLOCK, &sig, NULL) != 0) {
+		errx(1, "sigmask");
+	}
+	
+	pthread_t outputter, sighandler;
+	pthread_mutex_init(&context.mutex, NULL);
+	pthread_create(&sighandler, NULL, sig_thread, &sig);
+	pthread_create(&outputter, NULL, output_thread, &context);
+	
+	context.input_socket = create_socket(&context.config);
+	
+	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
+	
+	if (packet == NULL) {
+		err(1, "Could not allocate memory");
+	}
+	
+	pthread_create(&context.receiver, NULL, receiver_thread, packet);
+	pthread_join(context.receiver, NULL);
 	
 	free(packet);
 	free(context.stats);
