@@ -16,7 +16,7 @@ typedef struct {
 void 
 list_init (list_t * list);
 
-void
+int
 list_add (list_t *list, void *item);
 
 size_t

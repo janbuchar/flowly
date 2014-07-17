@@ -31,7 +31,8 @@ typedef enum {
 	E_UNEXPECTED_TOKEN = -9,
 	E_NETWORK_NAME_LONG = -10,
 	E_INVALID_FORMAT = -11,
-	E_FILE_NOT_FOUND = -12
+	E_FILE_NOT_FOUND = -12,
+	E_NO_MEMORY = -13
 } config_error_t;
 
 typedef struct {
@@ -170,6 +171,10 @@ parse_client (list_t *clients, char *line, char **sp)
 	
 	list_item_client_t *client = malloc(sizeof (list_item_client_t));
 	
+	if (client == NULL) {
+		return E_NO_MEMORY;
+	}
+	
 	if (format == NULL || strcmp(format, "raw") == 0) {
 		client->format = RAW;
 	} else {
@@ -181,7 +186,9 @@ parse_client (list_t *clients, char *line, char **sp)
 		return rc;
 	}
 	
-	list_add(clients, client);
+	if (list_add(clients, client) != 0) {
+		return E_NO_MEMORY;
+	}
 	
 	return 0;
 }
@@ -209,6 +216,11 @@ parse_route (list_t *routes, char *line, char **sp)
 	}
 	
 	list_item_route_t *route = malloc(sizeof (list_item_route_t));
+	
+	if (route == NULL) {
+		return E_NO_MEMORY;
+	}
+	
 	memset(route, 0, sizeof (list_item_route_t));
 	
 	strcpy(route->network, network);
@@ -233,7 +245,10 @@ parse_route (list_t *routes, char *line, char **sp)
 	
 	addr_mask(&route->addr, &route->mask);
 	
-	list_add(routes, route);
+	if (list_add(routes, route) != 0) {
+		return E_NO_MEMORY;
+	}
+	
 	return 0;
 }
 
@@ -324,6 +339,11 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 	config->client_count = list_count(&clients);
 	config->clients = malloc(config->client_count * sizeof (flowly_client_t));
 	
+	if (config->clients == NULL) {
+		rc = E_NO_MEMORY;
+		goto error;
+	}
+	
 	cursor = clients.head;
 	
 	while (cursor != NULL) {
@@ -339,6 +359,11 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 	
 	config->route_count = list_count(&routes);
 	config->routes = malloc(config->route_count * sizeof (flowly_route_t));
+	
+	if (config->routes == NULL) {
+		rc = E_NO_MEMORY;
+		goto error;
+	}
 	
 	cursor = routes.head;
 	i = 0;
@@ -357,8 +382,17 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 		
 		if (cursor_net == NULL) {
 			list_item_network_t *item = malloc(sizeof (list_item_network_t));
+			
+			if (item == NULL) {
+				rc = E_NO_MEMORY;
+				goto error;
+			}
+			
 			strcpy(item->name, network);
-			list_add(&networks, item);
+			if (list_add(&networks, item) != 0) {
+				rc = E_NO_MEMORY;
+				goto error;
+			}
 		}
 		
 		((list_item_route_t *) cursor->val)->network_id = j;
@@ -376,6 +410,11 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 	
 	config->network_count = list_count(&networks);
 	config->networks = malloc(config->network_count * sizeof (flowly_network_t));
+	
+	if (config->networks == NULL) {
+		rc = E_NO_MEMORY;
+		goto error;
+	}
 	
 	cursor = networks.head;
 	i = 0;
@@ -437,6 +476,8 @@ config_strerror (config_error_t err)
 		return "Invalid output format specified";
 	case E_FILE_NOT_FOUND:
 		return "Configuration file not found";
+	case E_NO_MEMORY:
+		return "Cannot allocate memory";
 	default:
 		return "Unknown error";
 	}

@@ -163,6 +163,10 @@ load_context ()
 	context.stats = malloc(context.stats_count * sizeof(stat_container_t));
 	context.stats_copy = malloc(context.stats_count * sizeof(stat_container_t));
 	
+	if (context.stats == NULL || context.stats_copy == NULL) {
+		err(1, "Could not allocate memory");
+	}
+	
 	stat_container_t *stat_it;
 	for (stat_it = context.stats; stat_it - context.stats < 2 * context.config.network_count; ++stat_it) {
 		stat_container_init(stat_it);
@@ -193,6 +197,11 @@ main (int argc, char **argv)
 {
 	int n;
 	void *packet = malloc(MAX_SFLOW_PACKET_SIZE);
+	
+	if (packet == NULL) {
+		err(1, "Could not allocate memory");
+	}
+	
 	sample_network_t net;
 	sflow_sample_data_t *sample;
 	sflow_flow_record_t *record;

@@ -51,6 +51,10 @@ output (flowly_config_t *config, stat_container_t *stats, struct timespec *thres
 	
 	output_header_t *header = malloc(data_size);
 	
+	if (header == NULL) {
+		return; // TODO report this
+	}
+	
 	struct timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
 	

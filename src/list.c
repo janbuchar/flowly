@@ -10,10 +10,15 @@ list_init (list_t *list)
 	list->tail = NULL;
 }
 
-void
+int
 list_add (list_t *list, void *item)
 {
 	list_node_t *node = malloc(sizeof (list_node_t));
+	
+	if (node == NULL) {
+		return -1;
+	}
+	
 	node->val = item;
 	node->next = NULL;
 	
@@ -24,6 +29,8 @@ list_add (list_t *list, void *item)
 		list->tail->next = node;
 	}
 	list->tail = node;
+	
+	return 0;
 }
 
 size_t
