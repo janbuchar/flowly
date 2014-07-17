@@ -14,11 +14,11 @@ $(PROG): $(OBJS) $(SRCDIR)/$(PROG).c
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(SRCDIR)/$(PROG).c $(LDFLAGS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) -c $(CFLAGS) -o "$@"  "$<" $(LDFLAGS)
+	$(CC) -c $(CFLAGS) -o $@  $<
 
 $(OBJDIR):
 	mkdir -p $@
 
 clean:
-	rm -f $(PROG)
-	rm -rf $(OBJDIR)
+	- rm -f $(PROG)
+	- rm -rf $(OBJDIR)
