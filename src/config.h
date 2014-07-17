@@ -27,11 +27,11 @@ typedef struct {
 } flowly_route_t;
 
 typedef struct {
-	flowly_client_t * clients;
+	flowly_client_t *clients;
 	size_t client_count;
-	flowly_route_t * routes;
+	flowly_route_t *routes;
 	size_t route_count;
-	flowly_network_t * networks;
+	flowly_network_t *networks;
 	size_t network_count;
 	size_t send_interval;
 	char listen_port[6];
@@ -42,9 +42,11 @@ typedef struct {
 	char *line;
 } flowly_config_error_t;
 
-int config_load (flowly_config_t * config, char * path, flowly_config_error_t *error);
+int
+config_load (flowly_config_t *config, char *path, flowly_config_error_t *error);
 
-void config_free (flowly_config_t * config);
+void
+config_free (flowly_config_t *config);
 
 char *
 config_strerror (int err);
