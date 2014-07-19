@@ -3,8 +3,8 @@
 
 #include "sflow.h"
 
-void *
-byte_increment (void *ptr, size_t n)
+inline void *
+ptr_inc (void *ptr, size_t n)
 {
 	return ((char *) ptr) + n;
 }
@@ -18,7 +18,7 @@ get_flow_sample (sflow_sample_data_t *sample)
 int
 next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 {
-	void *end = byte_increment(packet, packet_size);
+	void *end = ptr_inc(packet, packet_size);
 	
 	if (*sample == NULL) {
 		sflow_data_header_t * header = (sflow_data_header_t *) packet;
@@ -37,10 +37,10 @@ next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 		
 		*sample = (sflow_sample_data_t *) (body + 1);
 	} else {
-		*sample = (sflow_sample_data_t *) byte_increment(*sample + 1, ntohl((*sample)->length));
+		*sample = (sflow_sample_data_t *) ptr_inc(*sample + 1, ntohl((*sample)->length));
 	}
 	
-	return byte_increment(*sample, ntohl((*sample)->length)) <= end;
+	return ptr_inc(*sample, ntohl((*sample)->length)) <= end;
 }
 
 sflow_raw_header_t *
@@ -53,15 +53,15 @@ get_raw_header (sflow_flow_record_t *record)
 int
 next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record)
 {
-	void *end = byte_increment(sample + 1, ntohl(sample->length));
+	void *end = ptr_inc(sample + 1, ntohl(sample->length));
 	
 	if (*record == NULL) {
-		*record = (sflow_flow_record_t *) byte_increment(sample + 1, sizeof (sflow_flow_sample_t));
+		*record = (sflow_flow_record_t *) ptr_inc(sample + 1, sizeof (sflow_flow_sample_t));
 	} else {
-		*record = (sflow_flow_record_t *) byte_increment(*record + 1, ntohl((*record)->length));
+		*record = (sflow_flow_record_t *) ptr_inc(*record + 1, ntohl((*record)->length));
 	}
 	
-	return byte_increment(*record, ntohl((*record)->length)) <= end;
+	return ptr_inc(*record, ntohl((*record)->length)) <= end;
 }
 
 int
@@ -79,19 +79,19 @@ is_record_format (sflow_flow_record_t *record, sflow_record_format_t format)
 int
 get_ip_family (sflow_raw_header_t *header)
 {
-	return (*((u_int8_t *) byte_increment(header + 1, ETH_HEADER_SIZE)) & 0xf0) >> 4; // The first four bits of the header
+	return (*((u_int8_t *) ptr_inc(header + 1, ETH_HEADER_SIZE)) & 0xf0) >> 4; // The first four bits of the header
 }
 
 uint32_t *
 get_addressblock_ipv4 (sflow_raw_header_t *header)
 {
-	return byte_increment(header + 1, ETH_HEADER_SIZE + 12);
+	return ptr_inc(header + 1, ETH_HEADER_SIZE + 12);
 }
 
 uint32_t *
 get_addressblock_ipv6 (sflow_raw_header_t *header)
 {
-	return byte_increment(header + 1, ETH_HEADER_SIZE + 8);
+	return ptr_inc(header + 1, ETH_HEADER_SIZE + 8);
 }
 
 int 
@@ -128,12 +128,12 @@ get_destination (sflow_raw_header_t *header, struct sockaddr_storage *dst)
 	
 	switch (get_ip_family(header)) {
 	case 4:
-		address = byte_increment(get_addressblock_ipv4(header), IPV4_SIZE);
+		address = ptr_inc(get_addressblock_ipv4(header), IPV4_SIZE);
 		memcpy(&((struct sockaddr_in *) dst)->sin_addr, address, IPV4_SIZE);
 		((struct sockaddr_in *) dst)->sin_family = AF_INET;
 		return 1;
 	case 6:
-		address = byte_increment(get_addressblock_ipv6(header), IPV6_SIZE);
+		address = ptr_inc(get_addressblock_ipv6(header), IPV6_SIZE);
 		memcpy(&((struct sockaddr_in6 *) dst)->sin6_addr, address, IPV6_SIZE);
 		((struct sockaddr_in6 *) dst)->sin6_family = AF_INET6;
 		return 1;
