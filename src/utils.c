@@ -58,13 +58,6 @@ addr_match_ipv6 (struct sockaddr_in6 *addr, struct sockaddr_in6 *network)
 	return 1;
 }
 
-/**
- * Match @a addr against @a network
- * @param addr The address to be matched
- * @param network The address of the network to match against (Required to be already masked)
- * @param mask The subnet mask for network
- * @return 1 if @a addr matches, 0 if it doesn't
- */
 int
 addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, struct sockaddr_storage *mask)
 {
