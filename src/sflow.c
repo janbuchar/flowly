@@ -40,7 +40,7 @@ next_sample (void *packet, size_t packet_size, sflow_sample_data_t **sample)
 		*sample = (sflow_sample_data_t *) byte_increment(*sample + 1, ntohl((*sample)->length));
 	}
 	
-	return (void *) *sample < end;
+	return byte_increment(*sample, ntohl((*sample)->length)) <= end;
 }
 
 sflow_raw_header_t *
@@ -61,7 +61,7 @@ next_record (sflow_sample_data_t *sample, sflow_flow_record_t **record)
 		*record = (sflow_flow_record_t *) byte_increment(*record + 1, ntohl((*record)->length));
 	}
 	
-	return (void *) *record < end;
+	return byte_increment(*record, ntohl((*record)->length)) <= end;
 }
 
 int
