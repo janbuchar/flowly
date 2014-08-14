@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include "assert_ip.c"
 #include "../src/sflow.c"
 
 int main (int argc, char **argv)

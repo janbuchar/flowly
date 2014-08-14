@@ -4,130 +4,103 @@
 #include "utils.h"
 
 void 
-addr_mask_ipv4 (struct sockaddr_in *addr, struct sockaddr_in *mask)
+addr_mask_ipv4 (struct sockaddr_in *addr, size_t n)
 {
-	addr->sin_addr.s_addr &= mask->sin_addr.s_addr;
+	if (n > 32) {
+		return;
+	}
+	
+	if (n == 0) {
+		addr->sin_addr.s_addr = 0;
+		return;
+	}
+	
+	uint32_t ones;
+	memset(&ones, 255, sizeof (ones));
+	ones <<= (32 - n);
+	
+	addr->sin_addr.s_addr &= htonl(ones);
 }
 
 void 
-addr_mask_ipv6 (struct sockaddr_in6 *addr, struct sockaddr_in6 *mask)
+addr_mask_ipv6 (struct sockaddr_in6 *addr, size_t n)
 {
+	if (n > 128) {
+		return;
+	}
+	
 	size_t i;
-	u_int32_t *src = (u_int32_t *) &mask->sin6_addr;
-	u_int32_t *dst = (u_int32_t *) &addr->sin6_addr;
+	uint32_t *target = (uint32_t *) &addr->sin6_addr;
 	
 	for (i = 0; i < 4; i++) {
-		*dst &= *src;
-		src++; dst++;
+		if (n == 0) {
+			memset(target, 0, 4);
+		} else if (n < 32) {
+			uint32_t ones;
+			memset(&ones, 255, sizeof(ones));
+			ones <<= (32 - n);
+			
+			*target &= htonl(ones);
+		}
+		
+		target++;
+		
+		if (n > 32) {
+			n -= 32;
+		} else {
+			n = 0;
+		}
 	}
 }
 
 void
-addr_mask (struct sockaddr_storage *addr, struct sockaddr_storage *mask)
+addr_mask (struct sockaddr_storage *addr, size_t n)
 {
 	switch (addr->ss_family) {
 	case AF_INET:
-		addr_mask_ipv4((struct sockaddr_in *) addr, (struct sockaddr_in *) mask);
+		addr_mask_ipv4((struct sockaddr_in *) addr, n);
 		break;
 	case AF_INET6:
-		addr_mask_ipv6((struct sockaddr_in6 *) addr, (struct sockaddr_in6 *) mask);
+		addr_mask_ipv6((struct sockaddr_in6 *) addr, n);
 		break;
 	}
-}
-
-int 
-addr_match_ipv4 (struct sockaddr_in *addr, struct sockaddr_in *network)
-{
-	return addr->sin_addr.s_addr == network->sin_addr.s_addr;
-}
-
-int 
-addr_match_ipv6 (struct sockaddr_in6 *addr, struct sockaddr_in6 *network)
-{
-	size_t i;
-	u_int32_t *a = (u_int32_t *) &addr->sin6_addr;
-	u_int32_t *b = (u_int32_t *) &network->sin6_addr;
-	
-	for (i = 0; i < 4; i++) {
-		if (*a != *b) {
-			return 0;
-		}
-		a++; b++;
-	}
-	
-	return 1;
 }
 
 int
-addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, struct sockaddr_storage *mask)
+addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, size_t mask)
 {
 	struct sockaddr_storage addr_masked = *addr;
 	addr_mask(&addr_masked, mask);
 	
-	switch (addr->ss_family) {
-	case AF_INET:
-		return addr_match_ipv4((struct sockaddr_in *) &addr_masked, (struct sockaddr_in *) network);
-	case AF_INET6:
-		return addr_match_ipv6((struct sockaddr_in6 *) &addr_masked, (struct sockaddr_in6 *) network);
-	default:
-		return -1;
-	}
+	return memcmp(addr_get_raw(&addr_masked), addr_get_raw(network), addr_len(network)) == 0;
 }
 
-int
-addr_cidr_ipv4 (struct sockaddr_in *addr, int n)
-{
-	if (n < 0 || n > 32) {
-		return -1;
-	}
-	
-	if (n > 0) {
-		// Fill the address with ones and shift it to create a zero gap
-		memset(&addr->sin_addr.s_addr, 255, sizeof (addr->sin_addr.s_addr));
-		addr->sin_addr.s_addr = htonl(addr->sin_addr.s_addr << (32 - n));
-	} else {
-		memset(&addr->sin_addr.s_addr, 0, sizeof (addr->sin_addr.s_addr));
-	}
-	return 0;
-}
-
-int
-addr_cidr_ipv6 (struct sockaddr_in6 *addr, int n)
-{
-	if (n < 0 || n > 128) {
-		return -1;
-	}
-	
-	u_int32_t *a = ((u_int32_t *) &addr->sin6_addr);
-	
-	while (n >= 32) {
-		memset(a, 255, sizeof (u_int32_t));
-		n -= 32;
-		a++;
-	}
-	
-	if (n == 0) {
-		memset(a, 0, sizeof (u_int32_t));
-	} else {
-		memset(a, 255, sizeof (u_int32_t));
-		*a <<= (32 - n);
-	}
-	
-	return 0;
-}
-
-int 
-addr_cidr (struct sockaddr_storage *addr, int n)
+void *
+addr_get_raw (struct sockaddr_storage *addr)
 {
 	switch (addr->ss_family) {
 	case AF_INET:
-		return addr_cidr_ipv4((struct sockaddr_in *) addr, n);
+		return &(((struct sockaddr_in *) addr)->sin_addr.s_addr);
 	case AF_INET6:
-		return addr_cidr_ipv6((struct sockaddr_in6 *) addr, n);
+		return &(((struct sockaddr_in6 *) addr)->sin6_addr);
 	default:
-		return -1;
+		return NULL;
 	}
 }
+
+size_t 
+addr_len (struct sockaddr_storage *addr)
+{
+	switch (addr->ss_family) {
+	case AF_INET:
+		return 4;
+	case AF_INET6:
+		return 16;
+	default:
+		return 0;
+	}
+}
+
 
 u_int64_t
 htonll_ (u_int64_t val)

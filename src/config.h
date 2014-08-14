@@ -30,11 +30,19 @@ typedef struct {
 } flowly_network_t;
 
 /**
+ * A subnet address and mask
+ */
+typedef struct {
+	sa_family_t family;
+	char addr[16];
+	size_t mask;
+} subnet_t;
+
+/**
  * Contains information about a route
  */
 typedef struct {
-	struct sockaddr_storage addr;
-	struct sockaddr_storage mask;
+	subnet_t net;
 	size_t net_id;
 } flowly_route_t;
 

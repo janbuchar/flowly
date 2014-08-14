@@ -32,7 +32,8 @@ typedef enum {
 	E_NETWORK_NAME_LONG = -10,
 	E_INVALID_FORMAT = -11,
 	E_FILE_NOT_FOUND = -12,
-	E_NO_MEMORY = -13
+	E_NO_MEMORY = -13,
+	E_INVALID_MASK = -14
 } config_error_t;
 
 typedef struct {
@@ -40,10 +41,8 @@ typedef struct {
 } list_item_network_t;
 
 typedef struct {
-	struct sockaddr_storage addr;
-	struct sockaddr_storage mask;
+	subnet_t net;
 	char network[NET_NAME_LENGTH];
-	size_t network_id;
 } list_item_route_t;
 
 typedef flowly_client_t list_item_client_t;
@@ -199,11 +198,11 @@ parse_route (list_t *routes, char *line, char **sp)
 	static char *delimiter = "\t \n\r";
 	int rc;
 	
-	char *addr = strtok_r(line, "/\t \n\r", sp);
-	char *mask = strtok_r(NULL, delimiter, sp);
+	char *addr_str = strtok_r(line, "/\t \n\r", sp);
+	char *mask_str = strtok_r(NULL, delimiter, sp);
 	char *network = strtok_r(NULL, delimiter, sp);
 	
-	if (addr == NULL) {
+	if (addr_str == NULL) {
 		return 0; // empty line
 	}
 	
@@ -222,42 +221,37 @@ parse_route (list_t *routes, char *line, char **sp)
 	}
 	
 	memset(route, 0, sizeof (list_item_route_t));
-	
 	strcpy(route->network, network);
 	
-	rc = parse_addr(&route->addr, addr, NULL, NULL);
+	struct sockaddr_storage addr;
+	
+	rc = parse_addr(&addr, addr_str, NULL, NULL);
 	if (rc != 0) {
 		free(route);
 		return rc;
 	}
 	
-	if (str_is_numeric(mask)) {
-		route->mask.ss_family = route->addr.ss_family;
-		rc = addr_cidr(&route->mask, atoi(mask));
-	} else {
-		rc = parse_addr(&route->mask, mask, NULL, NULL);
-	}
-	
-	if (rc != 0) {
+	if (!str_is_numeric(mask_str)) {
 		free(route);
-		return rc;
+		return E_INVALID_MASK;
 	}
 	
-	addr_mask(&route->addr, &route->mask);
+	int mask = atoi(mask_str);
+	
+	if (mask < 0 || (addr.ss_family == AF_INET && mask > 32) || (addr.ss_family == AF_INET6 && mask > 128)) {
+		free(route);
+		return E_INVALID_MASK;
+	}
+	
+	route->net.family = addr.ss_family;
+	route->net.mask = mask;
+	
+	addr_mask(&addr, mask);
+	memcpy(&(route->net.addr), addr_get_raw(&addr), addr_len(&addr));
 	
 	if (list_add(routes, route) != 0) {
 		return E_NO_MEMORY;
 	}
-	
-	return 0;
-}
-
-int
-load_route (flowly_route_t *target, list_item_route_t *route)
-{	
-	target->addr = route->addr;
-	target->mask = route->mask;
-	target->net_id = route->network_id;
 	
 	return 0;
 }
@@ -371,7 +365,7 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 		char *network = ((list_item_route_t *) cursor->val)->network;
 		
 		cursor_net = networks.head;
-		j = 0;
+		j = 1; // network ID 0 is reserved
 		while (cursor_net != NULL) {
 			if (strcmp(((list_item_network_t *) cursor_net->val)->name, network) == 0) {
 				break;
@@ -395,11 +389,10 @@ config_load (flowly_config_t *config, char *path, flowly_config_error_t *err)
 			}
 		}
 		
-		((list_item_route_t *) cursor->val)->network_id = j;
-		rc = load_route(config->routes + i, (list_item_route_t *) cursor->val);
-		if (rc != 0) {
-			goto error;
-		}
+		flowly_route_t *target = config->routes + i;
+		
+		memcpy(&(target->net), &(((list_item_route_t *) cursor->val)->net), sizeof (subnet_t));
+		target->net_id = j;
 		
 		i++;
 		cursor_old = cursor;
@@ -478,6 +471,8 @@ config_strerror (config_error_t err)
 		return "Configuration file not found";
 	case E_NO_MEMORY:
 		return "Cannot allocate memory";
+	case E_INVALID_MASK:
+		return "Invalid subnet mask";
 	default:
 		return "Unknown error";
 	}

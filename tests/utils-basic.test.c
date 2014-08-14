@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <arpa/inet.h>
 
-#include "assert_ip.c"
 #include "../src/utils.c"
 
 int main (int argc, char **argv)
@@ -23,20 +23,18 @@ int main (int argc, char **argv)
 	ss_mask.ss_family = AF_INET;
 	inet_pton(AF_INET, "255.0.0.0", &((struct sockaddr_in *) &ss_mask)->sin_addr);
 	
-	addr_mask(&ss_net, &ss_mask);
+	addr_mask(&ss_net, 8);
 	assert_ip("192.0.0.0", &ss_net, "IPv4 masking");
 	
-	assert_int(1, addr_match(&ss_addr, &ss_net, &ss_mask), "IPv4 matching subnet");
-	assert_int(0, addr_match(&ss_addr2, &ss_net, &ss_mask), "IPv4 non-matching subnet");
+	assert_int(1, addr_match(&ss_addr, &ss_net, 8), "IPv4 matching subnet");
+	assert_int(0, addr_match(&ss_addr2, &ss_net, 8), "IPv4 non-matching subnet");
 	
-	addr_cidr(&ss_mask, 0);
-	addr_mask(&ss_net, &ss_mask);
-	assert_ip("0.0.0.0", &ss_mask, "IPv4 wildcard subnet mask");
-	assert_int(1, addr_match(&ss_addr, &ss_net, &ss_mask), "IPv4 wildcard subnet matching");
+	addr_mask(&ss_net, 0);
+	assert_ip("0.0.0.0", &ss_net, "IPv4 wildcard subnet mask");
+	assert_int(1, addr_match(&ss_addr, &ss_net, 0), "IPv4 wildcard subnet matching");
 	
-	addr_cidr(&ss_mask, 1);
 	inet_pton(AF_INET, "255.255.255.255", &((struct sockaddr_in *) &ss_addr)->sin_addr);
-	addr_mask(&ss_addr, &ss_mask);
+	addr_mask(&ss_addr, 1);
 	assert_ip("128.0.0.0", &ss_addr, "CIDR mask /1");
 	
 	ss_addr.ss_family = AF_INET6;
@@ -51,11 +49,11 @@ int main (int argc, char **argv)
 	ss_mask.ss_family = AF_INET6;
 	inet_pton(AF_INET6, "ffff::", &((struct sockaddr_in6 *) &ss_mask)->sin6_addr);
 	
-	addr_mask(&ss_net, &ss_mask);
+	addr_mask(&ss_net, 16);
 	assert_ip6("2001::", &ss_net, "IPv6 masking");
 	
-	assert_int(1, addr_match(&ss_addr, &ss_net, &ss_mask), "IPv6 matching subnet");
-	assert_int(0, addr_match(&ss_addr2, &ss_net, &ss_mask), "IPv6 non-matching subnet");
+	assert_int(1, addr_match(&ss_addr, &ss_net, 16), "IPv6 matching subnet");
+	assert_int(0, addr_match(&ss_addr2, &ss_net, 16), "IPv6 non-matching subnet");
 	
 	fct_send();
 	return 0;

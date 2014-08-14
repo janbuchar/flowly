@@ -6,12 +6,12 @@
 #include <netinet/in.h>
 
 /**
- * Mask @a addr with @a mask
+ * Mask @a addr so that only top @a n bits remain
  * @param addr The network address
  * @param mask The subnet mask for @a network
  */
 void
-addr_mask (struct sockaddr_storage *addr, struct sockaddr_storage *mask);
+addr_mask (struct sockaddr_storage *addr, size_t n);
 
 /**
  * Match @a addr against @a network
@@ -21,16 +21,23 @@ addr_mask (struct sockaddr_storage *addr, struct sockaddr_storage *mask);
  * @return 1 if @a addr matches, 0 if it doesn't
  */
 int
-addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, struct sockaddr_storage *mask);
+addr_match (struct sockaddr_storage *addr, struct sockaddr_storage *network, size_t mask);
 
 /**
- * Mask @a addr so that only @a n top bits are kept and the rest is set to zero
- * @param addr The network address
- * @param n The amount of top bits to be kept
- * @return 0 on success, -1 on error
+ * Get a pointer to the address contained in @a addr
+ * @param addr The address storage
+ * @return A pointer or NULL on failure
  */
-int
-addr_cidr (struct sockaddr_storage *addr, int n);
+void *
+addr_get_raw (struct sockaddr_storage *addr);
+
+/**
+ * Get the address length of @a addr
+ * @param addr
+ * @return The length of the address
+ */
+size_t
+addr_len (struct sockaddr_storage *addr);
 
 /**
  * A custom byte swap function for 64-bit numbers

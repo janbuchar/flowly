@@ -15,15 +15,9 @@
 #include "utils.h"
 #include "config.h"
 #include "sflow.h"
+#include "routing.h"
 #include "flowstat.h"
 #include "output.h"
-
-typedef struct {
-	int from_found;
-	size_t from;
-	int to_found;
-	size_t to;
-} sample_network_t;
 
 int
 create_socket (flowly_config_t *config)
@@ -66,36 +60,6 @@ create_socket (flowly_config_t *config)
 }
 
 void
-find_network (flowly_config_t *config, sflow_flow_record_t *record, sample_network_t *result)
-{
-	struct sockaddr_storage addr;
-	size_t i;
-	result->from_found = 0;
-	result->to_found = 0;
-	
-	if (get_source(get_raw_header(record), &addr)) {
-		for (i = 0; i < config->route_count; i++) {
-			if (addr_match(&addr, &config->routes[i].addr, &config->routes[i].mask)) {
-				result->from = config->routes[i].net_id;
-				result->from_found = 1;
-				break;
-			}
-		}
-	}
-	
-	if (get_destination(get_raw_header(record), &addr)) {
-		for (i = 0; i < config->route_count; i++) {
-			if (addr_match(&addr, &config->routes[i].addr, &config->routes[i].mask)) {
-				result->to = config->routes[i].net_id;
-				result->to_found = 1;
-				break;
-			}
-		}
-	}
-	
-}
-
-void
 store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow_flow_sample_t *sample, sflow_raw_header_t *header)
 {
 	flowstat_t *item = stat_container_next(&stats[2 * net_id + dir]);
@@ -104,6 +68,9 @@ store_stats (stat_container_t *stats, size_t net_id, flow_direction_t dir, sflow
 	item->packet_count = ntohl(sample->sample_rate);
 }
 
+/**
+ * A global container for everything that needs to be shared between threads
+ */
 struct {
 	flowly_config_t config;
 	stat_container_t *stats;
@@ -203,7 +170,8 @@ sig_thread (void *arg)
 void *
 receiver_thread (void *packet)
 {
-	sample_network_t net;
+	struct sockaddr_storage addr;
+	size_t net_id;
 	sflow_sample_data_t *sample;
 	sflow_flow_record_t *record;
 	
@@ -232,13 +200,16 @@ receiver_thread (void *packet)
 					continue;
 				}
 				
-				find_network(&context.config, record, &net);
-				
-				if (net.from_found) {
-					store_stats(context.stats, net.from, OUT, get_flow_sample(sample), get_raw_header(record));
+				if (get_source(get_raw_header(record), &addr)) {
+					if ((net_id = route_match(&addr))) {
+						store_stats(context.stats, net_id, OUT, get_flow_sample(sample), get_raw_header(record));
+					}
 				}
-				if (net.to_found) {
-					store_stats(context.stats, net.to, IN, get_flow_sample(sample), get_raw_header(record));
+				
+				if (get_destination(get_raw_header(record), &addr)) {
+					if ((net_id = route_match(&addr))) {
+						store_stats(context.stats, net_id, IN, get_flow_sample(sample), get_raw_header(record));
+					}
 				}
 			}
 		}
@@ -277,8 +248,12 @@ main (int argc, char **argv)
 		err(1, "Could not allocate memory");
 	}
 	
+	routing_init(&(context.config));
+	
 	pthread_create(&context.receiver, NULL, receiver_thread, packet);
 	pthread_join(context.receiver, NULL);
+	
+	routing_destroy();
 	
 	free(packet);
 	free(context.stats);

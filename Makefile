@@ -5,7 +5,7 @@ SRCDIR=src
 CFLAGS=-std=gnu89 -Wall
 LDFLAGS=-lrt -lpthread
 
-FILES=config flowstat list output sflow utils
+FILES=config flowstat list output sflow utils routing
 OBJS=$(FILES:%=$(OBJDIR)/%.o)
 
 all: $(OBJDIR) $(PROG)
