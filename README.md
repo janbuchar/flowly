@@ -53,9 +53,9 @@ Example configuration file
 	send_interval = 2000 # 2 seconds
 	
 	[networks]
-	127.0.0.0	0.0.0.0		Network_1
-	128.0.0.0	0.0.0.0		Network_2
-	64.0.0.0/8			Network_1 # CIDR-style masks are supported too
+	127.0.0.0/0		Network_1
+	128.0.0.0/16		Network_2
+	64.0.0.0/8		Network_1 # Only CIDR-style masks are supported
 	
 	[clients]
 	127.0.0.1	6666	raw
