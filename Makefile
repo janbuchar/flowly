@@ -1,4 +1,3 @@
-CC=gcc
 PROG=flowly
 OBJDIR=build
 SRCDIR=src
