@@ -1,4 +1,4 @@
-flowly
+flowly [![Build Status](https://travis-ci.org/Teyras/flowly.svg?branch=master)](https://travis-ci.org/Teyras/flowly)
 ======
 
 An sFlow data analyzer focused on realtime processing
